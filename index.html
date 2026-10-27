@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <title>NLabs — [NLX] Geometry Dash</title>
+    <meta name="description" content="Plataforma privada para gestionar equipos, collabs y megacollabs de Geometry Dash." />
+    <meta property="og:title" content="NLabs" />
+    <meta property="og:description" content="Gestión privada de equipos y proyectos GD." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+      <style>
+      body{margin:0;background:#fff}@media(prefers-color-scheme:dark){body{background:#0f0f14}}
+      .nl-loader{position:fixed;inset:0;display:grid;place-items:center}
+      .nl-loader img{position:absolute;width:96px;height:96px;object-fit:contain;animation:nlA 2.4s ease-in-out infinite}
+      .nl-loader img.b{opacity:0;animation-name:nlB}
+      @keyframes nlA{0%,45%{opacity:1;transform:scale(1) rotate(0)}50%,95%{opacity:0;transform:scale(.8) rotate(90deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+      @keyframes nlB{0%,45%{opacity:0;transform:scale(.8) rotate(-90deg)}50%,95%{opacity:1;transform:scale(1) rotate(0)}100%{opacity:0;transform:scale(.8) rotate(-90deg)}}
+    </style>
+  </head>
+  <body>
+    <div id="root"><div class="nl-loader"><img src="/assets/logo-purple.png" alt="" /><img class="b" src="/assets/logo-blue.png" alt="" /></div></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
