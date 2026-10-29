@@ -1,0 +1,8 @@
+project_id = "rzdpsdlajhblhyzlzvhi"
+
+[functions.admin-actions]
+verify_jwt = false
+
+[functions.resolve-login]
+verify_jwt = false
+
