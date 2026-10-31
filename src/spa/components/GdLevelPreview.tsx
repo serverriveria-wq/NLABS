@@ -4,15 +4,49 @@ import { useSiteSettings } from "@/lib/site-branding";
 
 type GdLevel = {
   name?: string; author?: string; description?: string; difficulty?: string; downloads?: number; likes?: number;
-  length?: string; stars?: number; orbs?: number; featured?: boolean; epic?: boolean; coins?: number; songName?: string; songAuthor?: string;
-  id?: string | number;
+  length?: string; stars?: number; featured?: boolean; epic?: boolean; songName?: string; songAuthor?: string;
 };
 
-/** Caché en memoria para no repetir peticiones a GDBrowser (tiene límite de uso). */
+/** Caché en memoria para no repetir peticiones a la API. */
 const cache = new Map<string, GdLevel | "error">();
 
+const LENGTHS = ["Tiny", "Short", "Medium", "Long", "XL", "Platformer"];
+
+/** Primer valor definido entre varios objetos y posibles nombres de campo. */
+function pick(objs: Array<Record<string, any> | undefined>, keys: string[]): any {
+  for (const o of objs) {
+    if (!o || typeof o !== "object") continue;
+    for (const k of keys) { const v = o[k]; if (v !== undefined && v !== null && v !== "") return v; }
+  }
+  return undefined;
+}
+const num = (v: any): number | undefined => (v === undefined || v === null || v === "" || isNaN(Number(v)) ? undefined : Number(v));
+
+/** Convierte la respuesta de GDHistory (los nombres de campo pueden variar) en un nivel simple. */
+function normalize(j: any): GdLevel | null {
+  if (!j || typeof j !== "object" || j.success === false) return null;
+  const rec = Array.isArray(j.records) ? j.records[0] : undefined;
+  const srcs = [j, j.level, j.data, rec];
+  const length = pick(srcs, ["cache_length", "length"]);
+  const diff = pick(srcs, ["cache_difficulty_name", "difficulty_name", "difficulty_text", "difficulty"]);
+  return {
+    name: pick(srcs, ["cache_level_name", "level_name", "cache_name", "name", "title"]),
+    author: pick(srcs, ["cache_username", "username", "author", "creator", "cache_author", "cache_creator"]),
+    description: pick(srcs, ["cache_description", "description"]),
+    difficulty: typeof diff === "string" ? diff : undefined,
+    downloads: num(pick(srcs, ["cache_downloads", "downloads"])),
+    likes: num(pick(srcs, ["cache_likes", "likes"])),
+    stars: num(pick(srcs, ["cache_stars", "stars", "cache_filter_stars"])),
+    length: typeof length === "string" ? length : num(length) !== undefined ? LENGTHS[num(length)!] : undefined,
+    featured: !!pick(srcs, ["cache_featured", "featured"]),
+    epic: !!pick(srcs, ["cache_epic", "epic"]),
+    songName: pick(srcs, ["cache_song_name", "song_name", "song"]),
+    songAuthor: pick(srcs, ["cache_song_author", "song_author"]),
+  };
+}
+
 /**
- * Vista previa de un nivel de Geometry Dash usando la API pública de GDBrowser (GDColon).
+ * Vista previa de un nivel de Geometry Dash usando la API de GDHistory (history.geometrydash.eu).
  * El fondo se edita desde Shell → Branding ("Fondo de la vista previa de GD").
  */
 export function GdLevelPreview({ levelId, className = "" }: { levelId: string | number | null | undefined; className?: string }) {
@@ -28,11 +62,11 @@ export function GdLevelPreview({ levelId, className = "" }: { levelId: string | 
     const ctrl = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const r = await fetch(`https://gdbrowser.com/api/level/${id}`, { signal: ctrl.signal });
+        const r = await fetch(`https://history.geometrydash.eu/api/v1/level/${id}/brief`, { signal: ctrl.signal });
         if (!r.ok) throw new Error(String(r.status));
-        const j = await r.json();
-        if (!j || typeof j !== "object" || !("name" in j)) throw new Error("not found");
-        cache.set(id, j as GdLevel); setData(j as GdLevel);
+        const lvl = normalize(await r.json());
+        if (!lvl) throw new Error("not found");
+        cache.set(id, lvl); setData(lvl);
       } catch (e) {
         if ((e as Error).name === "AbortError") return;
         cache.set(id, "error"); setData("error");
@@ -46,23 +80,23 @@ export function GdLevelPreview({ levelId, className = "" }: { levelId: string | 
   const style = bg
     ? { backgroundImage: `linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.75)), url(${bg})`, backgroundSize: "cover", backgroundPosition: "center" }
     : { backgroundImage: "linear-gradient(135deg, #1e1b4b, #312e81 55%, #0f172a)" };
-  const link = `https://gdbrowser.com/${id}`;
+  const link = `https://history.geometrydash.eu/level/${id}`;
 
   return (
     <div className={"overflow-hidden rounded-2xl border text-white shadow-soft " + className} style={style}>
       <div className="p-5">
-        {data === null && <p className="flex items-center gap-2 text-sm text-white/80"><Loader2 className="h-4 w-4 animate-spin" /> Buscando el nivel {id} en GDBrowser…</p>}
+        {data === null && <p className="flex items-center gap-2 text-sm text-white/80"><Loader2 className="h-4 w-4 animate-spin" /> Buscando el nivel {id} en GDHistory…</p>}
         {data === "error" && (
-          <p className="text-sm text-white/90">No se pudo cargar el nivel <b>{id}</b> (no existe o GDBrowser no responde ahora). <a className="underline" href={link} target="_blank" rel="noopener noreferrer">Abrir en GDBrowser</a></p>
+          <p className="text-sm text-white/90">No se pudo cargar el nivel <b>{id}</b> (no tiene registros en GDHistory o la API no responde ahora). <a className="underline" href={link} target="_blank" rel="noopener noreferrer">Abrir en GDHistory</a></p>
         )}
         {data && data !== "error" && (
           <>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <h3 className="text-xl font-bold leading-tight">{data.name}</h3>
+                <h3 className="text-xl font-bold leading-tight">{data.name || `Nivel ${id}`}</h3>
                 <p className="mt-0.5 flex items-center gap-1 text-sm text-white/80"><User className="h-3.5 w-3.5" /> por {data.author || "—"} · ID {id}</p>
               </div>
-              <a href={link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-white/15 px-2.5 py-1 text-xs font-medium hover:bg-white/25"><ExternalLink className="h-3.5 w-3.5" /> GDBrowser</a>
+              <a href={link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-white/15 px-2.5 py-1 text-xs font-medium hover:bg-white/25"><ExternalLink className="h-3.5 w-3.5" /> GDHistory</a>
             </div>
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               {data.difficulty && <Chip>{data.difficulty}{data.epic ? " · Epic" : data.featured ? " · Featured" : ""}</Chip>}
@@ -70,8 +104,6 @@ export function GdLevelPreview({ levelId, className = "" }: { levelId: string | 
               {typeof data.downloads === "number" && <Chip><Download className="h-3 w-3" /> {data.downloads.toLocaleString()}</Chip>}
               {typeof data.likes === "number" && <Chip><ThumbsUp className="h-3 w-3" /> {data.likes.toLocaleString()}</Chip>}
               {data.length && <Chip><Clock className="h-3 w-3" /> {data.length}</Chip>}
-              {typeof data.orbs === "number" && data.orbs > 0 && <Chip>{data.orbs} orbs</Chip>}
-              {typeof data.coins === "number" && data.coins > 0 && <Chip>{data.coins} monedas</Chip>}
             </div>
             {data.songName && <p className="mt-3 text-xs text-white/80">🎵 {data.songName}{data.songAuthor ? ` — ${data.songAuthor}` : ""}</p>}
             {data.description && <p className="mt-2 line-clamp-3 text-sm text-white/85">{data.description}</p>}
