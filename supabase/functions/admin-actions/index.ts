@@ -528,8 +528,10 @@ async function handle(action: string, p: Payload, callerId: string) {
 
     case "verifyAdminCode": {
       const expected = Deno.env.get("ADMIN_PANEL_CODE");
-      const signingKey = Deno.env.get("ADMIN_GATE_SIGNING_KEY");
-      if (!expected || !signingKey) throw new Error("Verificación de Labs no configurada");
+      // Si no existe ADMIN_GATE_SIGNING_KEY se usa la service key del proyecto (siempre disponible) como clave de firma.
+      const signingKey = Deno.env.get("ADMIN_GATE_SIGNING_KEY") || SERVICE_KEY;
+      if (!expected) throw new Error("Falta el secreto ADMIN_PANEL_CODE en Supabase → Edge Functions → Secrets");
+      if (!signingKey) throw new Error("Falta la clave de firma del código Shell");
       if (!matchesAdminCode(p.code, expected)) {
         throw new Error("Código incorrecto");
       }
@@ -589,7 +591,7 @@ Deno.serve(async (req) => {
   if (!action) return err("Missing action", 400);
 
   if (action !== "verifyAdminCode") {
-    const signingKey = Deno.env.get("ADMIN_GATE_SIGNING_KEY");
+    const signingKey = Deno.env.get("ADMIN_GATE_SIGNING_KEY") || SERVICE_KEY;
     const gate = req.headers.get("x-admin-gate") ?? "";
     if (!signingKey || !(await verifyGateToken(gate, userId, signingKey))) {
       return err("Introduce de nuevo el código de Shell", 403);
