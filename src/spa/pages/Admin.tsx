@@ -17,6 +17,8 @@ import { RoomReportsCard } from "@/spa/components/RoomReportsCard";
 import { KeepAliveCard } from "@/spa/components/KeepAliveCard";
 import { AuthPageTab } from "@/spa/components/AuthPageTab";
 import { AnnouncementsTab } from "@/spa/components/AnnouncementsTab";
+import { StickersTab } from "@/spa/components/StickersTab";
+import { BrandingExtras } from "@/spa/components/BrandingExtras";
 import { useAdUnits, AdCodeFrame, AD_PLACEMENTS, AD_POSITIONS, type AdUnit } from "@/spa/components/AdSense";
 
 import {
@@ -33,7 +35,7 @@ function randomPassword(len = 12) {
   return out;
 }
 
-type Tab = "users" | "projects" | "modalities" | "linktypes" | "deps" | "branding" | "texts" | "versions" | "credits" | "dedications" | "honors" | "difficulties" | "socials" | "texticons" | "sitelinks" | "requests" | "trophies" | "docs" | "authpage" | "announcements";
+type Tab = "users" | "projects" | "modalities" | "linktypes" | "deps" | "branding" | "texts" | "versions" | "credits" | "dedications" | "honors" | "difficulties" | "socials" | "texticons" | "sitelinks" | "requests" | "trophies" | "docs" | "authpage" | "announcements" | "stickers";
 
 export default function Admin() {
   const me = useMe();
@@ -80,7 +82,8 @@ export default function Admin() {
         <TabBtn active={tab === "sitelinks"} onClick={() => setTab("sitelinks")} icon={<Link2 className="h-4 w-4" />}>LINKED</TabBtn>
         <TabBtn active={tab === "honors"} onClick={() => setTab("honors")} icon={<Trophy className="h-4 w-4" />}>Cuadro de honor</TabBtn>
         <TabBtn active={tab === "requests"} onClick={() => setTab("requests")} icon={<UserPlus className="h-4 w-4" />}>Solicitudes</TabBtn>
-        <TabBtn active={tab === "announcements"} onClick={() => setTab("announcements")} icon={<Sparkles className="h-4 w-4" />}>Avisos</TabBtn>
+        <TabBtn active={tab === "announcements"} onClick={() => setTab("announcements")} icon={<Sparkles className="h-4 w-4" />}>Noticias</TabBtn>
+        <TabBtn active={tab === "stickers"} onClick={() => setTab("stickers")} icon={<ImageIcon className="h-4 w-4" />}>Stickers</TabBtn>
         <TabBtn active={tab === "trophies"} onClick={() => setTab("trophies")} icon={<Trophy className="h-4 w-4" />}>Trofeos</TabBtn>
         <TabBtn active={tab === "docs"} onClick={() => setTab("docs")} icon={<Type className="h-4 w-4" />}>Documentos</TabBtn>
         <TabBtn active={tab === "authpage"} onClick={() => setTab("authpage")} icon={<KeyRound className="h-4 w-4" />}>Login</TabBtn>
@@ -103,6 +106,7 @@ export default function Admin() {
       {tab === "texticons" && <TextIconsTab />}
       {tab === "requests" && <TeamRequestsTab />}
       {tab === "announcements" && <AnnouncementsTab />}
+      {tab === "stickers" && <StickersTab />}
       {tab === "trophies" && <TrophiesTab />}
       {tab === "docs" && <DocsTab />}
       {tab === "authpage" && <AuthPageTab />}
@@ -618,6 +622,7 @@ function BrandingTab() {
           <button onClick={saveSiteName} className="btn bg-primary text-primary-foreground border-primary"><Save className="h-3.5 w-3.5" /> Guardar</button>
         </div>
       </div>
+      <BrandingExtras />
       <KeepAliveCard />
       <DashboardVideoCard />
       <RoomReportsCard />

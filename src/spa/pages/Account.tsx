@@ -9,6 +9,7 @@ import { useSocialTypes } from "@/spa/components/UserSocials";
 import { uploadAndSign } from "@/lib/storage";
 import { useMe } from "@/spa/hooks/useMe";
 import { ThemeToggle } from "@/spa/components/ThemeToggle";
+import { DeleteAccountCard } from "@/spa/components/DeleteAccountCard";
 
 export default function Account() {
   const qc = useQueryClient();
@@ -310,6 +311,8 @@ export default function Account() {
       </div>
 
       <style>{`.input{width:100%;border:1px solid var(--color-border);background:var(--color-background);border-radius:.5rem;padding:.5rem .75rem;font-size:.875rem;outline:none}.input:focus{border-color:var(--color-primary)}`}</style>
+
+      <DeleteAccountCard />
     </div>
   );
 }

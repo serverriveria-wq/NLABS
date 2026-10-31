@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Film, Save, Trash2, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndSign } from "@/lib/storage";
+import { callAdmin } from "@/spa/lib/adminApi";
 
 const db = supabase as unknown as { from: (t: string) => any };
 
@@ -17,9 +18,13 @@ export function DashboardVideoCard() {
   async function save(value: string | null) {
     if (value && !/^https:\/\//.test(value)) return toast.error("La URL debe empezar por https://");
     setBusy(true);
-    const { error } = await db.from("site_settings").update({ dashboard_video_url: value }).eq("id", true);
+    try {
+      await callAdmin("updateSiteSettings", { dashboard_video_url: value });
+    } catch (e) {
+      setBusy(false);
+      return toast.error((e as Error).message);
+    }
     setBusy(false);
-    if (error) return toast.error(error.message);
     toast.success(value ? "Video actualizado" : "Video quitado");
     setUrl("");
     qc.invalidateQueries({ queryKey: ["dashboard-video"] });

@@ -9,18 +9,21 @@ export type SiteSettings = {
   favicon_url: string | null;
   preview_button_image_url: string | null;
   site_name: string | null;
+  gd_preview_bg_url?: string | null;
+  github_icon_url?: string | null;
 };
 
 export function useSiteSettings() {
   return useQuery({
     queryKey: ["site-settings"],
     queryFn: async (): Promise<SiteSettings> => {
-      const { data } = await supabase
-        .from("site_settings" as never)
-        .select("logo_url, favicon_url, preview_button_image_url, site_name")
-        .eq("id", true)
-        .maybeSingle();
-      return ((data as unknown as SiteSettings | null) ?? { logo_url: null, favicon_url: null, preview_button_image_url: null, site_name: null });
+      const empty: SiteSettings = { logo_url: null, favicon_url: null, preview_button_image_url: null, site_name: null, gd_preview_bg_url: null, github_icon_url: null };
+      const t = () => supabase.from("site_settings" as never);
+      // Si la migración v2 aún no se ejecutó, las columnas nuevas no existen: caemos al select antiguo.
+      const full = await t().select("logo_url, favicon_url, preview_button_image_url, site_name, gd_preview_bg_url, github_icon_url").eq("id", true).maybeSingle();
+      if (!full.error) return { ...empty, ...((full.data as unknown as Partial<SiteSettings> | null) ?? {}) };
+      const base = await t().select("logo_url, favicon_url, preview_button_image_url, site_name").eq("id", true).maybeSingle();
+      return { ...empty, ...((base.data as unknown as Partial<SiteSettings> | null) ?? {}) };
     },
     staleTime: 60_000,
   });

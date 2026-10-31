@@ -1,4 +1,6 @@
 import { Link, useParams } from "react-router-dom";
+import { GdLevelPreview } from "@/spa/components/GdLevelPreview";
+import { GithubLink } from "@/spa/components/GithubField";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -124,6 +126,12 @@ export function ProjectDetailView({ project: p }: { project: any }) {
             <p className="mt-2 inline-flex items-center gap-1 text-sm text-muted-foreground"><Music className="h-3.5 w-3.5" /> {p.song_url ? <a href={p.song_url} target="_blank" rel="noreferrer" className="hover:text-primary">{p.song_name}</a> : p.song_name}</p>
           )}
           {p.preview_video_url && <PreviewVideoButton url={p.preview_video_url} />}
+          {((p.github_enabled && p.github_url) || (Array.isArray(p.tools) && p.tools.length > 0)) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {p.github_enabled && <GithubLink url={p.github_url} />}
+              {Array.isArray(p.tools) && p.tools.map((t: string) => <span key={t} className="inline-flex items-center gap-1 rounded-full border bg-background px-2.5 py-1 text-xs"><Wrench className="h-3 w-3" /> {t}</span>)}
+            </div>
+          )}
           <ProgressBars project={p} />
           <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {new Date(p.created_at).toLocaleDateString()}</span>
@@ -160,6 +168,8 @@ export function ProjectDetailView({ project: p }: { project: any }) {
           </div>
         </div>
       </div>
+
+      {p.level_id && <GdLevelPreview levelId={p.level_id} className="mt-6" />}
 
       <AdSlot placement="project" position="bottom" className="mt-8" />
 

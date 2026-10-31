@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { GithubField, GithubLink, parseList } from "@/spa/components/GithubField";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -74,8 +75,10 @@ export default function MusicStudio() {
                   <p className="truncate font-medium">{t.title}</p>
                   <p className="truncate text-xs text-muted-foreground">{t.artist || people.data?.[t.author_id] || "—"}{t.genre ? ` · ${t.genre}` : ""}{t.bpm ? ` · ${t.bpm} BPM` : ""}{t.duration_seconds ? ` · ${fmt(t.duration_seconds)}` : ""}{t.visibility === "private" ? " · 🔒" : ""}</p>
                   <p className="truncate text-[11px] text-muted-foreground">{t.license ? `Licencia: ${t.license}` : ""}{t.credits ? ` · Créditos: ${t.credits}` : ""}{proj(t.project_id) ? ` · Proyecto: ${proj(t.project_id)}` : ""}</p>
+                  {(((t as any).tools?.length ?? 0) > 0 || ((t as any).dependencies?.length ?? 0) > 0 || (t as any).musical_key) && <p className="truncate text-[11px] text-muted-foreground">{(t as any).musical_key ? `Tono: ${(t as any).musical_key} · ` : ""}{((t as any).tools?.length ?? 0) > 0 ? `Herramientas: ${(t as any).tools.join(", ")}` : ""}{((t as any).dependencies?.length ?? 0) > 0 ? ` · Dependencias: ${(t as any).dependencies.join(", ")}` : ""}</p>}
                 </div>
                 {t.audio_url ? <Button size="icon" variant="outline" aria-label={playing?.id === t.id ? "Pausar" : "Reproducir"} onClick={() => setPlaying(playing?.id === t.id ? null : t)}>{playing?.id === t.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button> : null}
+                {(t as any).github_enabled && <GithubLink url={(t as any).github_url} />}
                 {t.external_url && <a href={t.external_url} target="_blank" rel="noopener noreferrer" aria-label="Abrir enlace" className="rounded-md border p-2 hover:bg-accent"><ExternalLink className="h-4 w-4" /></a>}
                 {can(t) && <><button aria-label="Editar" onClick={() => setEdit(t)} className="rounded-md p-2 hover:bg-accent"><Pencil className="h-4 w-4" /></button><button aria-label="Eliminar" onClick={() => remove(t)} className="rounded-md p-2 text-destructive hover:bg-accent"><Trash2 className="h-4 w-4" /></button></>}
               </li>
@@ -110,12 +113,16 @@ function Player({ track, onClose }: { track: Track; onClose: () => void }) {
   );
 }
 
+function L({ t, children }: { t: string; children: React.ReactNode }) { return <label className="block"><span className="mb-1 block text-xs text-muted-foreground">{t}</span>{children}</label>; }
+
 function MusicForm({ item, projects, onClose, onSaved }: { item: Track | null; projects: { id: string; name: string }[]; onClose: () => void; onSaved: () => void }) {
   const [f, setF] = useState({ title: item?.title ?? "", artist: item?.artist ?? "", description: item?.description ?? "", genre: item?.genre ?? "", bpm: item?.bpm?.toString() ?? "", duration: item?.duration_seconds?.toString() ?? "", ext: item?.external_url ?? "", project_id: item?.project_id ?? "", credits: item?.credits ?? "", license: item?.license ?? "", visibility: item?.visibility ?? "team" });
   const [audio, setAudio] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
   const [rights, setRights] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [x, setX] = useState({ tools: ((item as any)?.tools ?? []).join(", "), deps: ((item as any)?.dependencies ?? []).join(", "), key: (item as any)?.musical_key ?? "", gh: !!(item as any)?.github_enabled, ghUrl: (item as any)?.github_url ?? "" });
+  const setx = (k: string, v: string) => setX((p) => ({ ...p, [k]: v }));
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
   function pickAudio(x: File | undefined) {
     if (!x) return;
@@ -128,6 +135,7 @@ function MusicForm({ item, projects, onClose, onSaved }: { item: Track | null; p
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!f.title.trim()) return toast.error("Pon un título.");
+    if (x.gh && x.ghUrl.trim() && !/^https:\/\/(www\.)?github\.com\//i.test(x.ghUrl.trim())) return toast.error("El enlace de GitHub debe empezar por https://github.com/");
     if (f.ext && !/^https:\/\//.test(f.ext)) return toast.error("El enlace debe empezar por https://");
     if (!audio && !item?.audio_url && !f.ext) return toast.error("Sube un audio o pega un enlace externo.");
     if (audio && !rights) return toast.error("Confirma que tienes derecho a distribuir este audio.");
@@ -138,13 +146,12 @@ function MusicForm({ item, projects, onClose, onSaved }: { item: Track | null; p
       if (audio) { audio_url = await uploadAndSign("music", audio, uid); const o = pathFromSigned(item?.audio_url, "music"); if (o) await supabase.storage.from("music").remove([o]); }
       if (cover) { if (!cover.type.startsWith("image/") || cover.size > 5 * 1024 * 1024) throw new Error("La portada debe ser una imagen de hasta 5 MB."); cover_url = await uploadAndSign("music", cover, uid); }
       const n = (v: string) => (v === "" ? null : Number(v));
-      const row = { title: f.title.trim(), artist: f.artist || null, description: f.description || null, genre: f.genre || null, bpm: n(f.bpm), duration_seconds: n(f.duration), audio_url, external_url: f.ext || null, cover_url, project_id: f.project_id || null, credits: f.credits || null, license: f.license || null, visibility: f.visibility };
+      const row = { tools: parseList(x.tools), dependencies: parseList(x.deps), musical_key: x.key || null, github_enabled: x.gh, github_url: x.gh ? (x.ghUrl.trim() || null) : null, title: f.title.trim(), artist: f.artist || null, description: f.description || null, genre: f.genre || null, bpm: n(f.bpm), duration_seconds: n(f.duration), audio_url, external_url: f.ext || null, cover_url, project_id: f.project_id || null, credits: f.credits || null, license: f.license || null, visibility: f.visibility };
       const { error } = item ? await db.from("music_tracks").update(row).eq("id", item.id) : await db.from("music_tracks").insert(row);
       if (error) throw error;
       toast.success(item ? "Pista actualizada" : "Pista publicada"); onSaved();
     } catch (err) { toast.error((err as Error).message); } finally { setBusy(false); }
   }
-  const L = ({ t, children }: { t: string; children: React.ReactNode }) => <label className="block"><span className="mb-1 block text-xs text-muted-foreground">{t}</span>{children}</label>;
   return (
     <Modal onClose={onClose} title={item ? "Editar pista" : "Subir música"}>
       <form onSubmit={submit} className="space-y-3">
@@ -166,6 +173,12 @@ function MusicForm({ item, projects, onClose, onSaved }: { item: Track | null; p
           <L t="Créditos"><input className="input" value={f.credits} onChange={(e) => set("credits", e.target.value)} /></L>
           <L t="Licencia"><input className="input" value={f.license} onChange={(e) => set("license", e.target.value)} placeholder="CC BY, uso interno…" /></L>
         </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <L t="Herramientas / DAW (coma)"><input className="input" value={x.tools} onChange={(e) => setx("tools", e.target.value)} placeholder="FL Studio, Serum, Ableton…" /></L>
+          <L t="Dependencias (coma)"><input className="input" value={x.deps} onChange={(e) => setx("deps", e.target.value)} placeholder="Samples, VST, librerías…" /></L>
+          <L t="Tonalidad"><input className="input" value={x.key} onChange={(e) => setx("key", e.target.value)} placeholder="Am, C#m, F mayor…" /></L>
+        </div>
+        <GithubField enabled={x.gh} url={x.ghUrl} onChange={(v) => setX((p) => ({ ...p, gh: v.enabled, ghUrl: v.url }))} />
         <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={onClose}>Cancelar</Button><Button disabled={busy} className="gap-1.5">{busy && <Loader2 className="h-4 w-4 animate-spin" />}{item ? "Guardar cambios" : "Publicar"}</Button></div>
       </form>
     </Modal>

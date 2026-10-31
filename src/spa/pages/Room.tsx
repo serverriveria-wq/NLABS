@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
-import { MessageSquare, Send, Trash2, Reply, Flag, Pencil, Loader2, Wifi, WifiOff } from "lucide-react";
+import { MessageSquare, Send, Trash2, Reply, Flag, Pencil, Loader2, Wifi, WifiOff, Smile } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/spa/hooks/useMe";
 import { Button } from "@/components/ui/button";
 
-type Msg = { id: string; user_id: string; body: string; reply_to: string | null; edited_at: string | null; created_at: string };
+type Msg = { id: string; user_id: string; body: string; reply_to: string | null; edited_at: string | null; created_at: string; sticker_url?: string | null };
+type Sticker = { id: string; name: string; image_url: string };
 const PAGE = 50;
 // Tablas nuevas (aún no están en types.ts): cliente sin tipado estricto.
 const db = supabase as unknown as { from: (t: string) => any; channel: (n: string) => any; removeChannel: (c: unknown) => void };
@@ -24,6 +25,7 @@ export default function RoomPage() {
   const [online, setOnline] = useState(false);
   const [sending, setSending] = useState(false);
   const [unseen, setUnseen] = useState(0);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
 
@@ -34,6 +36,14 @@ export default function RoomPage() {
       if (error) throw error;
       return Object.fromEntries((data ?? []).map((p) => [p.id, p]));
     },
+  });
+  const stickers = useQuery({
+    queryKey: ["room-stickers"],
+    queryFn: async (): Promise<Sticker[]> => {
+      const { data } = await db.from("room_stickers").select("id, name, image_url").order("order_index").order("created_at");
+      return (data ?? []) as Sticker[];
+    },
+    staleTime: 60_000,
   });
   const who = (id: string) => {
     const p = people.data?.[id];
@@ -96,7 +106,17 @@ export default function RoomPage() {
     setText(""); setReply(null); stick.current = true;
   }
 
+  async function sendSticker(st: Sticker) {
+    if (sending) return;
+    setSending(true);
+    const { error } = await db.from("room_messages").insert({ body: "🖼️ " + st.name.slice(0, 40), sticker_url: st.image_url, reply_to: reply?.id ?? null });
+    setSending(false);
+    if (error) return toast.error(error.message.includes("Demasiados") ? "Vas muy rápido, espera unos segundos." : error.message);
+    setPickerOpen(false); setReply(null); stick.current = true;
+  }
+
   async function edit(m: Msg) {
+    if (m.sticker_url) return;
     const v = window.prompt("Editar mensaje", m.body);
     if (!v || !v.trim() || v.trim() === m.body) return;
     const { error } = await db.from("room_messages").update({ body: v.trim(), edited_at: new Date().toISOString() }).eq("id", m.id);
@@ -143,15 +163,17 @@ export default function RoomPage() {
               return (
                 <div key={m.id} className={"flex " + (mine ? "justify-end" : "justify-start")}>
                   <div className={"max-w-[85%] rounded-2xl px-3 py-2 text-sm " + (mine ? "bg-primary-soft" : "bg-secondary/60")}>
-                    {parent && <div className="mb-1 truncate border-l-2 border-primary pl-2 text-xs text-muted-foreground">{who(parent.user_id)}: {parent.body}</div>}
+                    {parent && <div className="mb-1 truncate border-l-2 border-primary pl-2 text-xs text-muted-foreground">{who(parent.user_id)}: {parent.sticker_url ? "🖼️ sticker" : parent.body}</div>}
                     <div className="mb-0.5 flex items-baseline gap-2">
                       <span className="font-semibold">{who(m.user_id)}</span>
                       <span className="text-[11px] text-muted-foreground">{time(m.created_at)}{m.edited_at ? " · editado" : ""}</span>
                     </div>
-                    <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                    {m.sticker_url
+                      ? <img src={m.sticker_url} alt={m.body} loading="lazy" className="my-1 h-32 w-32 object-contain" />
+                      : <p className="whitespace-pre-wrap break-words">{m.body}</p>}
                     <div className="mt-1 flex gap-3 text-[11px] text-muted-foreground">
                       <button onClick={() => setReply(m)} className="flex items-center gap-1 hover:text-foreground"><Reply className="h-3 w-3" />Responder</button>
-                      {mine && <button onClick={() => edit(m)} className="flex items-center gap-1 hover:text-foreground"><Pencil className="h-3 w-3" />Editar</button>}
+                      {mine && !m.sticker_url && <button onClick={() => edit(m)} className="flex items-center gap-1 hover:text-foreground"><Pencil className="h-3 w-3" />Editar</button>}
                       {!mine && <button onClick={() => report(m)} className="flex items-center gap-1 hover:text-foreground"><Flag className="h-3 w-3" />Reportar</button>}
                       {(mine || isAdmin) && <button onClick={() => remove(m)} className="flex items-center gap-1 hover:text-destructive"><Trash2 className="h-3 w-3" />Eliminar</button>}
                     </div>
@@ -171,11 +193,27 @@ export default function RoomPage() {
 
       {reply && (
         <div className="mt-2 flex items-center justify-between rounded-lg border bg-secondary/50 px-3 py-1.5 text-xs">
-          <span className="truncate">Respondiendo a <b>{who(reply.user_id)}</b>: {reply.body}</span>
+          <span className="truncate">Respondiendo a <b>{who(reply.user_id)}</b>: {reply.sticker_url ? "🖼️ sticker" : reply.body}</span>
           <button onClick={() => setReply(null)} className="ml-2 text-muted-foreground hover:text-foreground">cancelar</button>
         </div>
       )}
+      {pickerOpen && (
+        <div className="mt-2 max-h-48 overflow-y-auto rounded-2xl border bg-card p-2">
+          {stickers.isLoading ? <p className="p-3 text-center text-xs text-muted-foreground">Cargando stickers…</p>
+            : (stickers.data ?? []).length === 0 ? <p className="p-3 text-center text-xs text-muted-foreground">Aún no hay stickers. El administrador puede añadirlos desde Shell → Stickers.</p>
+            : (
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                {stickers.data!.map((st) => (
+                  <button key={st.id} type="button" onClick={() => sendSticker(st)} title={st.name} className="rounded-xl p-1 transition hover:bg-accent">
+                    <img src={st.image_url} alt={st.name} loading="lazy" className="aspect-square w-full object-contain" />
+                  </button>
+                ))}
+              </div>
+            )}
+        </div>
+      )}
       <form onSubmit={send} className="mt-2 flex gap-2">
+        <Button type="button" variant="outline" size="icon" aria-label="Stickers" aria-expanded={pickerOpen} onClick={() => setPickerOpen((o) => !o)}><Smile className="h-4 w-4" /></Button>
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={1000} autoComplete="off" placeholder="Escribe un mensaje…"
           className="flex-1 rounded-xl border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary" />
         <Button type="submit" disabled={sending || !text.trim()} className="gap-2"><Send className="h-4 w-4" /><span className="hidden sm:inline">Enviar</span></Button>

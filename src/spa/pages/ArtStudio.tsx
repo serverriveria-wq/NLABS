@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { GithubField, GithubLink, parseList } from "@/spa/components/GithubField";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -91,6 +92,15 @@ export default function ArtStudio() {
             {cur.description && <p className="whitespace-pre-wrap">{cur.description}</p>}
             <p className="text-xs text-muted-foreground">Por {people.data?.[cur.author_id] ?? "—"} · {new Date(cur.created_at).toLocaleDateString("es")} · {VIS[cur.visibility]}{cur.credits ? ` · Créditos: ${cur.credits}` : ""}</p>
             <div className="flex flex-wrap gap-1">{cur.tags.map((t) => <span key={t} className="rounded-full bg-primary-soft px-2 py-0.5 text-xs">{t}</span>)}{cur.project_id && <Link className="text-xs text-primary hover:underline" to={`/projects/${cur.project_id}`}>Proyecto relacionado →</Link>}</div>
+            {(((cur as any).tools?.length ?? 0) > 0 || ((cur as any).dependencies?.length ?? 0) > 0 || (cur as any).license || (cur as any).dimensions || ((cur as any).github_enabled && (cur as any).github_url)) && (
+              <div className="space-y-1 pt-1 text-xs text-muted-foreground">
+                {((cur as any).tools?.length ?? 0) > 0 && <p><b>Herramientas:</b> {(cur as any).tools.join(", ")}</p>}
+                {((cur as any).dependencies?.length ?? 0) > 0 && <p><b>Dependencias:</b> {(cur as any).dependencies.join(", ")}</p>}
+                {(cur as any).dimensions && <p><b>Tamaño:</b> {(cur as any).dimensions}</p>}
+                {(cur as any).license && <p><b>Licencia:</b> {(cur as any).license}</p>}
+                {(cur as any).github_enabled && <GithubLink url={(cur as any).github_url} />}
+              </div>
+            )}
             {canEdit(cur) && <div className="flex gap-2 pt-2"><Button size="sm" variant="outline" className="gap-1" onClick={() => { setEdit(cur); setView(null); }}><Pencil className="h-3.5 w-3.5" /> Editar</Button><Button size="sm" variant="outline" className="gap-1 text-destructive" onClick={() => remove(cur)}><Trash2 className="h-3.5 w-3.5" /> Eliminar</Button></div>}
           </div>
         </Modal>
@@ -105,6 +115,8 @@ function ArtForm({ item, projects, onClose, onSaved }: { item: Art | null; proje
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(item?.image_url ?? null);
   const [busy, setBusy] = useState(false);
+  const [x, setX] = useState({ tools: ((item as any)?.tools ?? []).join(", "), deps: ((item as any)?.dependencies ?? []).join(", "), license: (item as any)?.license ?? "", dimensions: (item as any)?.dimensions ?? "", gh: !!(item as any)?.github_enabled, ghUrl: (item as any)?.github_url ?? "" });
+  const setx = (k: string, v: string) => setX((p) => ({ ...p, [k]: v }));
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
   function pick(x: File | undefined) {
     if (!x) return;
@@ -116,12 +128,13 @@ function ArtForm({ item, projects, onClose, onSaved }: { item: Art | null; proje
     e.preventDefault();
     if (!f.title.trim()) return toast.error("Pon un título.");
     if (!item && !file) return toast.error("Elige una imagen.");
+    if (x.gh && x.ghUrl.trim() && !/^https:\/\/(www\.)?github\.com\//i.test(x.ghUrl.trim())) return toast.error("El enlace de GitHub debe empezar por https://github.com/");
     setBusy(true);
     try {
       const { data: u } = await supabase.auth.getUser();
       let image_url = item?.image_url;
       if (file) { image_url = await uploadAndSign("art", file, u.user!.id); const old = pathFromSigned(item?.image_url, "art"); if (old) await supabase.storage.from("art").remove([old]); }
-      const row = { title: f.title.trim(), description: f.description || null, category: f.category || null, tags: f.tags.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 12), project_id: f.project_id || null, credits: f.credits || null, visibility: f.visibility, image_url };
+      const row = { tools: parseList(x.tools), dependencies: parseList(x.deps), license: x.license || null, dimensions: x.dimensions || null, github_enabled: x.gh, github_url: x.gh ? (x.ghUrl.trim() || null) : null, title: f.title.trim(), description: f.description || null, category: f.category || null, tags: f.tags.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 12), project_id: f.project_id || null, credits: f.credits || null, visibility: f.visibility, image_url };
       const { error } = item ? await db.from("artworks").update(row).eq("id", item.id) : await db.from("artworks").insert(row);
       if (error) throw error;
       toast.success(item ? "Obra actualizada" : "Obra publicada"); onSaved();
@@ -142,6 +155,13 @@ function ArtForm({ item, projects, onClose, onSaved }: { item: Art | null; proje
           <label className="block"><span className="mb-1 block text-xs text-muted-foreground">Créditos</span><input className="input" value={f.credits} onChange={(e) => set("credits", e.target.value)} placeholder="Autor original, colaboradores…" /></label>
         </div>
         <label className="block"><span className="mb-1 block text-xs text-muted-foreground">Etiquetas (coma)</span><input className="input" value={f.tags} onChange={(e) => set("tags", e.target.value)} /></label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block"><span className="mb-1 block text-xs text-muted-foreground">Herramientas (coma)</span><input className="input" value={x.tools} onChange={(e) => setx("tools", e.target.value)} placeholder="Photoshop, Krita, Blender…" /></label>
+          <label className="block"><span className="mb-1 block text-xs text-muted-foreground">Dependencias (coma)</span><input className="input" value={x.deps} onChange={(e) => setx("deps", e.target.value)} placeholder="Fuentes, brushes, plugins…" /></label>
+          <label className="block"><span className="mb-1 block text-xs text-muted-foreground">Resolución / tamaño</span><input className="input" value={x.dimensions} onChange={(e) => setx("dimensions", e.target.value)} placeholder="1920×1080" /></label>
+          <label className="block"><span className="mb-1 block text-xs text-muted-foreground">Licencia</span><input className="input" value={x.license} onChange={(e) => setx("license", e.target.value)} placeholder="CC BY, uso interno…" /></label>
+        </div>
+        <GithubField enabled={x.gh} url={x.ghUrl} onChange={(v) => setX((p) => ({ ...p, gh: v.enabled, ghUrl: v.url }))} />
         <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={onClose}>Cancelar</Button><Button disabled={busy} className="gap-1.5">{busy && <Loader2 className="h-4 w-4 animate-spin" />}{item ? "Guardar cambios" : "Publicar"}</Button></div>
       </form>
     </Modal>

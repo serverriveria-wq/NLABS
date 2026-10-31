@@ -1,13 +1,51 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PROJECT_STATUSES, PROJECT_TYPES, statusMeta, typeMeta } from "@/lib/nlab-constants";
-import { Search, FolderKanban } from "lucide-react";
+import { Search, FolderKanban, Users, Palette, Music } from "lucide-react";
 import { gradientStyle } from "@/lib/site-branding";
 import { AdSlot } from "@/spa/components/AdSense";
 import { DifficultyBadge } from "@/spa/components/DifficultySelect";
+
+/** Menú de 4 puntitos: accesos a Collabs, Arte y Música (antes escondidos en «Crear»). */
+function SectionsMenu({ onCollabs }: { onCollabs: () => void }) {
+  const [open, setOpen] = useState(false);
+  const nav = useNavigate();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent | TouchEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", away); document.addEventListener("touchstart", away); document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("touchstart", away); document.removeEventListener("keydown", esc); };
+  }, [open]);
+  const items = [
+    { label: "Collabs", icon: Users, go: () => onCollabs() },
+    { label: "Arte", icon: Palette, go: () => nav("/studio/arte") },
+    { label: "Música", icon: Music, go: () => nav("/studio/musica") },
+  ];
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen((o) => !o)} aria-label="Secciones: Collabs, Arte y Música" aria-expanded={open}
+        className="grid h-10 w-10 place-items-center rounded-lg border bg-card hover:bg-accent">
+        <svg viewBox="0 0 20 20" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+          <circle cx="6" cy="6" r="2.2" /><circle cx="14" cy="6" r="2.2" /><circle cx="6" cy="14" r="2.2" /><circle cx="14" cy="14" r="2.2" />
+        </svg>
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 z-30 mt-2 w-44 overflow-hidden rounded-xl border bg-card shadow-elevated">
+          {items.map(({ label, icon: I, go }) => (
+            <button key={label} role="menuitem" onClick={() => { setOpen(false); go(); }} className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-accent">
+              <I className="h-4 w-4 text-primary" /> {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Projects() {
   const [q, setQ] = useState("");
@@ -33,9 +71,12 @@ export default function Projects() {
     <div className="mx-auto max-w-6xl px-4 py-8 md:px-8">
       <Helmet><title>Proyectos — NLab</title></Helmet>
       <AdSlot placement="projects" position="top" className="mb-6" />
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">Proyectos</h1>
-        <p className="text-sm text-muted-foreground">Todos los collabs y proyectos del equipo. Usa la sección <span className="font-medium text-foreground">Crear</span> del menú para añadir uno nuevo.</p>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Proyectos</h1>
+          <p className="text-sm text-muted-foreground">Todos los collabs y proyectos del equipo. Usa la sección <span className="font-medium text-foreground">Crear</span> del menú para añadir uno nuevo.</p>
+        </div>
+        <SectionsMenu onCollabs={() => { setType("collab"); setStatus("all"); setQ(""); }} />
       </div>
       <div className="mb-6 flex flex-wrap gap-3">
         <div className="relative min-w-[220px] flex-1">

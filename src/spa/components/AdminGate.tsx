@@ -1,17 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { KeyRound, Loader2 } from "lucide-react";
-import { callAdmin } from "@/spa/lib/adminApi";
+import { ADMIN_GATE_EVENT, ADMIN_GATE_KEY, adminGateValid, callAdmin } from "@/spa/lib/adminApi";
 import { Button } from "@/components/ui/button";
 
-const KEY = "nlab_admin_gate";
+const KEY = ADMIN_GATE_KEY;
 
 export function AdminGate({ children }: { children: React.ReactNode }) {
-  const [ok, setOk] = useState(() => !!sessionStorage.getItem(KEY));
+  const [ok, setOk] = useState(() => adminGateValid());
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [attempts, setAttempts] = useState(0);
   const [cooldown, setCooldown] = useState(false);
+
+  useEffect(() => {
+    const onExpire = () => setOk(false);
+    window.addEventListener(ADMIN_GATE_EVENT, onExpire);
+    return () => window.removeEventListener(ADMIN_GATE_EVENT, onExpire);
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

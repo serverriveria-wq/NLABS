@@ -4,12 +4,15 @@ import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
 import {
   Save, Loader2, Plus, Trash2, ArrowUp, ArrowDown, GripVertical, Eye, Rocket, Copy, Archive, Users, Palette, Music,
-  Layers, Link2, Settings2, FileText, Upload, Check, X, Clock,
+  Layers, Link2, Settings2, FileText, Upload, Check, X, Clock, Wrench, Hammer,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { uploadAndSign } from "@/lib/storage";
 import { PROJECT_STATUSES, PROJECT_TYPES } from "@/lib/nlab-constants";
 import { Button } from "@/components/ui/button";
+import { DependenciesSection } from "@/spa/pages/EditProject";
+import { GithubField, parseList } from "@/spa/components/GithubField";
+import { GdLevelPreview } from "@/spa/components/GdLevelPreview";
 
 // Tablas/columnas nuevas (aún no están en types.ts): cliente sin tipado estricto.
 const db = supabase as unknown as { from: (t: string) => any };
@@ -26,6 +29,8 @@ const TABS = [
   { k: "gd", label: "Geometry Dash", icon: Music },
   { k: "parts", label: "Partes", icon: Layers },
   { k: "team", label: "Equipo y reglas", icon: Users },
+  { k: "deps", label: "Dependencias", icon: Wrench },
+  { k: "tools", label: "Herramientas y GitHub", icon: Hammer },
   { k: "res", label: "Recursos", icon: Link2 },
   { k: "preview", label: "Vista previa", icon: Eye },
 ] as const;
@@ -38,7 +43,10 @@ const EMPTY = {
   banner_url: "", thumbnail_url: "", preview_video_url: "", song_name: "", song_url: "", song_id: "", bpm: "", level_id: "", gd_version: "", level_length: "",
   theme: "", style: "", duration_seconds: "", palette: [] as string[], slots: "", requirements: "", rules: "", applications_close_at: "", comments_enabled: true,
   progress: 0, is_draft: true,
+  tools_text: "", github_enabled: false, github_url: "",
 };
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) { return (<label className="block text-sm"><span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>{children}</label>); }
 
 export default function ColabStudio() {
   const { id } = useParams();
@@ -68,6 +76,7 @@ export default function ColabStudio() {
     if (error || !p) { toast.error("Proyecto no encontrado o sin permiso."); setLoading(false); return; }
     setF({
       ...EMPTY, ...Object.fromEntries(Object.keys(EMPTY).map((k) => [k, p[k] ?? (EMPTY as any)[k]])),
+      tools_text: (p.tools ?? []).join(", "), github_enabled: !!p.github_enabled, github_url: p.github_url ?? "",
       tags: p.tags ?? [], palette: Array.isArray(p.palette) ? p.palette : [],
       deadline: p.deadline ?? "", start_date: p.start_date ?? "",
       applications_close_at: p.applications_close_at ? String(p.applications_close_at).slice(0, 16) : "",
@@ -101,6 +110,7 @@ export default function ColabStudio() {
       style: f.style || null, duration_seconds: n(String(f.duration_seconds)), palette: f.palette, slots: n(String(f.slots)), requirements: f.requirements || null,
       rules: f.rules || null, applications_close_at: f.applications_close_at ? new Date(f.applications_close_at).toISOString() : null,
       comments_enabled: f.comments_enabled, is_draft: draft,
+      tools: parseList(f.tools_text), github_enabled: f.github_enabled, github_url: f.github_enabled ? (f.github_url.trim() || null) : null,
     };
   }
   async function save(draft = f.is_draft, silent = false) {
@@ -232,8 +242,7 @@ export default function ColabStudio() {
   }
 
   if (loading) return <div className="grid min-h-[50vh] place-items-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
-  const needsSave = !id && tab !== "general" && tab !== "gd";
-  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (<label className="block text-sm"><span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>{children}</label>);
+  const needsSave = !id && tab !== "general" && tab !== "gd" && tab !== "tools";
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 md:px-8">
@@ -277,6 +286,19 @@ export default function ColabStudio() {
         </div>
       )}
 
+      {id && tab === "deps" && <DependenciesSection projectId={id} />}
+
+      {tab === "tools" && (
+        <div className="grid gap-4 rounded-2xl border bg-card p-5">
+          <Field label="Herramientas usadas (separadas por coma)">
+            <input className="input" value={f.tools_text} onChange={(e) => set("tools_text", e.target.value)} placeholder="Geode, Mega Hack, Photoshop, FL Studio…" />
+          </Field>
+          <div className="flex flex-wrap gap-1">{parseList(f.tools_text).map((t) => <span key={t} className="rounded-full bg-primary-soft px-2 py-0.5 text-xs">{t}</span>)}</div>
+          <GithubField enabled={f.github_enabled} url={f.github_url} onChange={(v) => { set("github_enabled", v.enabled); set("github_url", v.url); }} />
+          <p className="text-xs text-muted-foreground">Guarda con «Guardar» arriba para aplicar los cambios. El icono de GitHub se puede cambiar desde Shell → Branding.</p>
+        </div>
+      )}
+
       {tab === "gd" && (
         <div className="grid gap-4 rounded-2xl border bg-card p-5 md:grid-cols-3">
           <Field label="Canción"><input className="input" value={f.song_name} onChange={(e) => set("song_name", e.target.value)} /></Field>
@@ -296,6 +318,7 @@ export default function ColabStudio() {
               <button className="btn" onClick={() => set("palette", [...f.palette, "#6d5ef5"])}><Plus className="h-3.5 w-3.5" /> Color</button>
             </div>
           </div>
+          <div className="md:col-span-3"><GdLevelPreview levelId={f.level_id} /></div>
           <div className="md:col-span-3"><Field label="Video de demostración"><input className="input" value={f.preview_video_url} onChange={(e) => set("preview_video_url", e.target.value)} placeholder="https://youtube.com/…" /></Field></div>
         </div>
       )}

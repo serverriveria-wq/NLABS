@@ -1,4 +1,5 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { GithubField, parseList } from "@/spa/components/GithubField";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -36,7 +37,7 @@ export default function EditProject() {
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<Tab>("basic");
 
-  useEffect(() => { if (q.data && !f) setF({ ...q.data }); }, [q.data, f]);
+  useEffect(() => { if (q.data && !f) setF({ ...q.data, tools_text: ((q.data as any).tools ?? []).join(", ") }); }, [q.data, f]);
 
   if (q.isLoading || !f) {
     return <div className="grid min-h-[60vh] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
@@ -72,6 +73,9 @@ export default function EditProject() {
         visibility: f.visibility || "team",
         deadline: f.deadline || null,
         track_progress_history: !!f.track_progress_history,
+        tools: parseList(f.tools_text ?? ""),
+        github_enabled: !!f.github_enabled,
+        github_url: f.github_enabled ? (String(f.github_url ?? "").trim() || null) : null,
       };
       const { error } = await supabase.from("projects").update(patch).eq("id", id!);
       if (error) throw error;
@@ -200,6 +204,10 @@ function BasicSection({ f, up }: any) {
       <Field label="Descripción">
         <textarea rows={5} className="input" value={f.description ?? ""} onChange={(e) => up("description", e.target.value)} />
       </Field>
+      <Field label="Herramientas (separadas por coma)">
+        <input className="input" value={f.tools_text ?? ""} onChange={(e) => up("tools_text", e.target.value)} placeholder="Geode, Mega Hack, Photoshop…" />
+      </Field>
+      <GithubField enabled={!!f.github_enabled} url={f.github_url ?? ""} onChange={(v) => { up("github_enabled", v.enabled); up("github_url", v.url); }} />
     </Section>
   );
 }
@@ -412,7 +420,7 @@ function MembersSection({ projectId, isOwner }: { projectId: string; isOwner: bo
 /* ============================================================
    Dependencies
 ============================================================ */
-function DependenciesSection({ projectId }: { projectId: string }) {
+export function DependenciesSection({ projectId }: { projectId: string }) {
   const qc = useQueryClient();
   const deps = useQuery({
     queryKey: ["edit-deps", projectId],

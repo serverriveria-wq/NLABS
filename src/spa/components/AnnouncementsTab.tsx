@@ -22,12 +22,12 @@ export function AnnouncementsTab() {
       ? await t.update(row as never).eq("id", editing)
       : await t.insert(row as never);
     if (error) return toast.error(error.message);
-    toast.success(editing ? "Aviso actualizado" : "Aviso publicado");
+    toast.success(editing ? "Noticia actualizada" : "Noticia publicada");
     setForm(empty); setEditing(null);
     qc.invalidateQueries({ queryKey: ["announcements"] });
   }
   async function remove(id: string) {
-    if (!confirm("¿Borrar este aviso?")) return;
+    if (!confirm("¿Borrar esta noticia?")) return;
     const { error } = await supabase.from("announcements" as never).delete().eq("id", id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["announcements"] });
@@ -36,7 +36,7 @@ export function AnnouncementsTab() {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="space-y-3 rounded-2xl border bg-card p-4">
-        <h2 className="font-semibold">{editing ? "Editar aviso" : "Nuevo aviso"}</h2>
+        <h2 className="font-semibold">{editing ? "Editar noticia" : "Nueva noticia"}</h2>
         <input className="input" placeholder="Título" value={form.title} onChange={(e) => set("title", e.target.value)} />
         <textarea className="input" rows={5} placeholder="Mensaje" value={form.body ?? ""} onChange={(e) => set("body", e.target.value)} />
         <MediaInput placeholder="Imagen (opcional) https://…" value={form.image_url ?? ""} onChange={(v: string) => set("image_url", v)} folder="announcements" />
