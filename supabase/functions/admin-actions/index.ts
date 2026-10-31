@@ -257,7 +257,7 @@ async function handle(action: string, p: Payload, callerId: string) {
 
     case "updateSiteSettings": {
       const patch: Record<string, unknown> = { id: true };
-      for (const k of ["logo_url", "favicon_url", "preview_button_image_url", "site_name", "adsense_client_id", "adsense_slot_id"]) {
+      for (const k of ["logo_url", "favicon_url", "preview_button_image_url", "site_name", "adsense_client_id", "adsense_slot_id", "dashboard_video_url", "gd_preview_bg_url", "github_icon_url"]) {
         if (p[k] !== undefined) patch[k] = (p[k] as string) || null;
       }
       if (p.adsense_enabled !== undefined) patch.adsense_enabled = Boolean(p.adsense_enabled);
@@ -457,6 +457,11 @@ async function handle(action: string, p: Payload, callerId: string) {
         "title", "description", "url", "logo_url", "banner_url", "order_index",
       ]);
 
+    case "createSticker":
+    case "updateSticker":
+    case "deleteSticker":
+      return await simpleCrud(sb, "room_stickers", action.replace(/Sticker$/, ""), p, ["name", "image_url", "order_index"]);
+
     case "createTextIcon":
     case "updateTextIcon":
     case "deleteTextIcon":
@@ -587,7 +592,7 @@ Deno.serve(async (req) => {
     const signingKey = Deno.env.get("ADMIN_GATE_SIGNING_KEY");
     const gate = req.headers.get("x-admin-gate") ?? "";
     if (!signingKey || !(await verifyGateToken(gate, userId, signingKey))) {
-      return err("Introduce de nuevo el código de Labs", 403);
+      return err("Introduce de nuevo el código de Shell", 403);
     }
   }
 

@@ -11,7 +11,7 @@ export function matchesAdminCode(given: unknown, expected: string): boolean {
 }
 
 export async function issueGateToken(userId: string, secret: string, now = Date.now()): Promise<string> {
-  const payload = toBase64(encoder.encode(JSON.stringify({ sub: userId, expires: now + 60 * 60 * 1000 })));
+  const payload = toBase64(encoder.encode(JSON.stringify({ sub: userId, expires: now + 12 * 60 * 60 * 1000 })));
   const signature = await crypto.subtle.sign('HMAC', await key(secret), encoder.encode(payload));
   return `${payload}.${toBase64(new Uint8Array(signature))}`;
 }
