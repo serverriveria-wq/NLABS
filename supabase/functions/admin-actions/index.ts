@@ -261,6 +261,14 @@ async function handle(action: string, p: Payload, callerId: string) {
         if (p[k] !== undefined) patch[k] = (p[k] as string) || null;
       }
       if (p.adsense_enabled !== undefined) patch.adsense_enabled = Boolean(p.adsense_enabled);
+      if (p.section_icons !== undefined) {
+        const clean: Record<string, string> = {};
+        const src = (p.section_icons && typeof p.section_icons === "object" ? p.section_icons : {}) as Record<string, unknown>;
+        for (const [key, val] of Object.entries(src)) {
+          if (/^[a-z_]{1,30}$/.test(key) && typeof val === "string" && /^https:\/\//.test(val) && val.length < 2000) clean[key] = val;
+        }
+        patch.section_icons = clean;
+      }
       const { error } = await sb
         .from("site_settings")
         .upsert(patch, { onConflict: "id" });
