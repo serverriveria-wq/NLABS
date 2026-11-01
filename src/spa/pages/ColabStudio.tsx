@@ -12,6 +12,7 @@ import { PROJECT_STATUSES, PROJECT_TYPES } from "@/lib/nlab-constants";
 import { Button } from "@/components/ui/button";
 import { DependenciesSection } from "@/spa/pages/EditProject";
 import { GithubField, parseList } from "@/spa/components/GithubField";
+import { SectionIcon } from "@/spa/components/SectionIcon";
 import { GdLevelPreview } from "@/spa/components/GdLevelPreview";
 
 // Tablas/columnas nuevas (aún no están en types.ts): cliente sin tipado estricto.
@@ -263,7 +264,7 @@ export default function ColabStudio() {
         {TABS.map(({ k, label, icon: I }) => (
           <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
             className={"flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition " + (tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent")}>
-            <I className="h-4 w-4" /> {label}{k === "parts" && parts.length > 0 && <span className="rounded-full bg-background/30 px-1.5 text-[10px]">{parts.length}</span>}
+            <SectionIcon k={k} fallback={I} /> {label}{k === "parts" && parts.length > 0 && <span className="rounded-full bg-background/30 px-1.5 text-[10px]">{parts.length}</span>}
           </button>
         ))}
       </div>

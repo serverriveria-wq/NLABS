@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { SectionIcon } from "@/spa/components/SectionIcon";
 import { GdLevelPreview } from "@/spa/components/GdLevelPreview";
 import { GithubLink } from "@/spa/components/GithubField";
 import { Helmet } from "react-helmet-async";
@@ -149,21 +150,21 @@ export function ProjectDetailView({ project: p }: { project: any }) {
           <ProgressHistory projectId={id} enabled={!!p.track_progress_history} />
           {p.song_url && (
             <section className="rounded-2xl border bg-card p-5">
-              <h2 className="mb-2 flex items-center gap-2 font-semibold">🎵 {p.song_name || "Canción"}</h2>
+              <h2 className="mb-2 flex items-center gap-2 font-semibold"><SectionIcon k="gd" fallback={Music} /> {p.song_name || "Canción"}</h2>
               <MusicPreviewPlayer url={p.song_url} title={p.song_name || "Canción"} />
             </section>
           )}
           <DependenciesView projectId={id} />
           {p.credits && (
             <section className="rounded-2xl border bg-card p-5">
-              <h2 className="mb-2 flex items-center gap-2 font-semibold"><Sparkles className="h-4 w-4" /> Créditos</h2>
+              <h2 className="mb-2 flex items-center gap-2 font-semibold"><SectionIcon k="credits" fallback={Sparkles} /> Créditos</h2>
               <p className="whitespace-pre-wrap text-sm text-muted-foreground">{p.credits}</p>
             </section>
           )}
         </div>
         <div className="space-y-6">
           <div className="rounded-2xl border bg-card p-5">
-            <h2 className="mb-3 flex items-center gap-2 font-semibold"><UsersIcon className="h-4 w-4" /> Participantes</h2>
+            <h2 className="mb-3 flex items-center gap-2 font-semibold"><SectionIcon k="participants" fallback={UsersIcon} /> Participantes</h2>
             <Participants projectId={id} ownerId={p.created_by} />
           </div>
         </div>
@@ -287,7 +288,7 @@ function Gallery({ projectId, onPreview }: { projectId: string; onPreview: (url:
   if (!q.data || q.data.length === 0) return null;
   return (
     <div className="mt-6 rounded-2xl border bg-card p-5">
-      <h2 className="mb-4 flex items-center gap-2 font-semibold"><ImageIcon className="h-4 w-4" /> Galería</h2>
+      <h2 className="mb-4 flex items-center gap-2 font-semibold"><SectionIcon k="gallery" fallback={ImageIcon} /> Galería</h2>
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
         {q.data.map((g: any) => (
           <div key={g.id} className="overflow-hidden rounded-xl border bg-background">
@@ -512,7 +513,7 @@ function Tools({ projectId }: { projectId: string }) {
   if (!hasAny) return null;
   return (
     <section className="rounded-2xl border bg-card p-5 space-y-4">
-      <h2 className="flex items-center gap-2 font-semibold">Herramientas</h2>
+      <h2 className="flex items-center gap-2 font-semibold"><SectionIcon k="tools" fallback={Wrench} /> Herramientas</h2>
       {tasks.data && tasks.data.length > 0 && (
         <div><h3 className="mb-2 flex items-center gap-1 text-sm font-medium"><ListChecks className="h-3.5 w-3.5" /> Tareas</h3>
           <ul className="space-y-1 text-sm">
@@ -566,7 +567,7 @@ function ActivityFeed({ projectId }: { projectId: string }) {
   if (!q.data || q.data.length === 0) return null;
   return (
     <section className="rounded-2xl border bg-card p-5">
-      <h2 className="mb-3 flex items-center gap-2 font-semibold"><Activity className="h-4 w-4" /> Actividad</h2>
+      <h2 className="mb-3 flex items-center gap-2 font-semibold"><SectionIcon k="activity" fallback={Activity} /> Actividad</h2>
       <div className="space-y-1 text-sm">
         {q.data.map((a: any) => (
           <div key={a.id} className="flex items-center gap-2 text-xs">
@@ -932,7 +933,7 @@ function DependenciesView({ projectId }: { projectId: string }) {
   if (!q.data?.length) return null;
   return (
     <section className="rounded-2xl border bg-card p-5">
-      <h2 className="mb-3 flex items-center gap-2 font-semibold"><Wrench className="h-4 w-4" /> Dependencias</h2>
+      <h2 className="mb-3 flex items-center gap-2 font-semibold"><SectionIcon k="deps" fallback={Wrench} /> Dependencias</h2>
       <div className="flex flex-wrap gap-2">
         {q.data.map((d: any) => (
           <span key={d.id} className="inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-xs">

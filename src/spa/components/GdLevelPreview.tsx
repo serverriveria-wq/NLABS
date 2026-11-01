@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Download, ThumbsUp, User, ExternalLink, Loader2, Star, Clock } from "lucide-react";
 import { useSiteSettings } from "@/lib/site-branding";
+import { SectionIcon } from "@/spa/components/SectionIcon";
 
 type GdLevel = {
   name?: string; author?: string; description?: string; difficulty?: string; downloads?: number; likes?: number;
@@ -62,9 +63,26 @@ export function GdLevelPreview({ levelId, className = "" }: { levelId: string | 
     const ctrl = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const r = await fetch(`https://history.geometrydash.eu/api/v1/level/${id}/brief`, { signal: ctrl.signal });
-        if (!r.ok) throw new Error(String(r.status));
-        const lvl = normalize(await r.json());
+        let lvl: GdLevel | null = null;
+        try {
+          // 1) Puente en nuestro propio servidor (Vercel): evita bloqueos CORS y lee la API o la página del nivel.
+          const r = await fetch(`/api/gdlevel?id=${id}`, { signal: ctrl.signal });
+          const ct = r.headers.get("content-type") || "";
+          if (r.ok && ct.includes("json")) {
+            const j = await r.json();
+            if (j?.ok && j.level) lvl = j.level as GdLevel;
+          } else if (r.status === 404 && ct.includes("json")) {
+            throw new Error("not found");
+          }
+        } catch (e) {
+          if ((e as Error).name === "AbortError" || (e as Error).message === "not found") throw e;
+        }
+        // 2) Plan B: llamada directa desde el navegador (por si el puente no está disponible).
+        if (!lvl) {
+          const r = await fetch(`https://history.geometrydash.eu/api/v1/level/${id}/brief`, { signal: ctrl.signal });
+          if (!r.ok) throw new Error(String(r.status));
+          lvl = normalize(await r.json());
+        }
         if (!lvl) throw new Error("not found");
         cache.set(id, lvl); setData(lvl);
       } catch (e) {
@@ -93,7 +111,7 @@ export function GdLevelPreview({ levelId, className = "" }: { levelId: string | 
           <>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <h3 className="text-xl font-bold leading-tight">{data.name || `Nivel ${id}`}</h3>
+                <h3 className="flex items-center gap-2 text-xl font-bold leading-tight"><SectionIcon k="gd" fallback={Star} className="h-5 w-5" /> {data.name || `Nivel ${id}`}</h3>
                 <p className="mt-0.5 flex items-center gap-1 text-sm text-white/80"><User className="h-3.5 w-3.5" /> por {data.author || "—"} · ID {id}</p>
               </div>
               <a href={link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg bg-white/15 px-2.5 py-1 text-xs font-medium hover:bg-white/25"><ExternalLink className="h-3.5 w-3.5" /> GDHistory</a>

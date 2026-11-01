@@ -9,7 +9,7 @@ export function isGithubUrl(v: string | null | undefined): boolean {
 /** Icono de GitHub: usa el que el admin subió en Shell → Branding; si no hay, el de lucide. */
 export function GithubIcon({ className = "h-4 w-4" }: { className?: string }) {
   const site = useSiteSettings();
-  const url = site.data?.github_icon_url;
+  const url = site.data?.github_icon_url || site.data?.section_icons?.github;
   return url ? <img src={url} alt="GitHub" className={className + " object-contain"} /> : <Github className={className} />;
 }
 
