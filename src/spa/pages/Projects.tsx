@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import { PROJECT_STATUSES, PROJECT_TYPES, statusMeta, typeMeta } from "@/lib/nlab-constants";
-import { Search, FolderKanban, Users, Palette, Music } from "lucide-react";
+import { Search, FolderKanban, Users, Palette, Music, Check } from "lucide-react";
 import { gradientStyle } from "@/lib/site-branding";
 import { AdSlot } from "@/spa/components/AdSense";
 import { DifficultyBadge } from "@/spa/components/DifficultySelect";
@@ -22,9 +22,9 @@ function SectionsMenu({ onCollabs }: { onCollabs: () => void }) {
     return () => { document.removeEventListener("mousedown", away); document.removeEventListener("touchstart", away); document.removeEventListener("keydown", esc); };
   }, [open]);
   const items = [
-    { label: "Collabs", icon: Users, go: () => onCollabs() },
-    { label: "Arte", icon: Palette, go: () => nav("/studio/arte") },
-    { label: "Música", icon: Music, go: () => nav("/studio/musica") },
+    { label: "Collabs", icon: Users, go: () => onCollabs(), current: true },
+    { label: "Arte", icon: Palette, go: () => nav("/studio/arte"), current: false },
+    { label: "Música", icon: Music, go: () => nav("/studio/musica"), current: false },
   ];
   return (
     <div ref={ref} className="relative">
@@ -36,9 +36,9 @@ function SectionsMenu({ onCollabs }: { onCollabs: () => void }) {
       </button>
       {open && (
         <div role="menu" className="absolute right-0 z-30 mt-2 w-44 overflow-hidden rounded-xl border bg-card shadow-elevated">
-          {items.map(({ label, icon: I, go }) => (
+          {items.map(({ label, icon: I, go, current }) => (
             <button key={label} role="menuitem" onClick={() => { setOpen(false); go(); }} className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm hover:bg-accent">
-              <I className="h-4 w-4 text-primary" /> {label}
+              <I className="h-4 w-4 text-primary" /> {label}{current && <Check className="ml-auto h-4 w-4 text-muted-foreground" aria-label="Sección actual" />}
             </button>
           ))}
         </div>
@@ -76,7 +76,7 @@ export default function Projects() {
           <h1 className="text-2xl font-bold tracking-tight">Proyectos</h1>
           <p className="text-sm text-muted-foreground">Todos los collabs y proyectos del equipo. Usa la sección <span className="font-medium text-foreground">Crear</span> del menú para añadir uno nuevo.</p>
         </div>
-        <SectionsMenu onCollabs={() => { setType("collab"); setStatus("all"); setQ(""); }} />
+        <SectionsMenu onCollabs={() => { setType("all"); setStatus("all"); setQ(""); }} />
       </div>
       <div className="mb-6 flex flex-wrap gap-3">
         <div className="relative min-w-[220px] flex-1">

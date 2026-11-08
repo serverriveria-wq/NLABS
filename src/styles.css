@@ -151,3 +151,111 @@
 .input:focus{border-color:var(--color-primary)}
 .btn{border-radius:.5rem;padding:.375rem .625rem;font-size:.75rem;border:1px solid var(--color-border);display:inline-flex;align-items:center;gap:.25rem}
 .btn:hover{background:var(--color-accent)}
+
+/* =====================================================================
+   Editor avanzado con estilo del editor de Geometry Dash
+   (marco azul con baldosas, paneles marrones biselados, texto con contorno,
+   campos oscuros y botones verdes). Todo va dentro de .gd-editor.
+   ===================================================================== */
+.gd-editor {
+  --background: #7a4112;
+  --foreground: #ffffff;
+  --card: #b4692a;
+  --card-foreground: #ffffff;
+  --popover: #8a4d1a;
+  --popover-foreground: #ffffff;
+  --muted: #8f5420;
+  --muted-foreground: #f8dfb8;
+  --accent: #cc8a42;
+  --accent-foreground: #ffffff;
+  --border: #4d2608;
+  --input: #4d2608;
+  --ring: #9dff3a;
+  --primary: #39c71b;
+  --primary-foreground: #ffffff;
+  --primary-soft: #7a4515;
+  --secondary: #8f5420;
+  --secondary-foreground: #ffffff;
+  position: relative;
+  border: 4px solid #07265c;
+  border-radius: 22px;
+  padding: 14px;
+  color: #fff;
+  background: #0a56d6 url(/assets/gd-bg.jpg) center / cover no-repeat;
+  box-shadow: 0 6px 0 #041a40, 0 14px 30px -10px rgba(0, 0, 0, .55), inset 0 0 0 2px rgba(255, 255, 255, .12);
+}
+@media (min-width: 768px) { .gd-editor { padding: 22px; } }
+
+/* Tipografía tipo GD: redondeada, blanca, con contorno negro */
+.gd-editor h1, .gd-editor h2, .gd-editor h3, .gd-editor button, .gd-editor .btn, .gd-editor label > span, .gd-editor [role="tab"] {
+  font-family: "Lilita One", "Inter", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: .02em;
+  text-shadow: -1px -1px 0 #1b0b00, 1px -1px 0 #1b0b00, -1px 1px 0 #1b0b00, 1px 1px 0 #1b0b00, 0 2px 0 #1b0b00;
+}
+.gd-editor h1 { font-size: 1.75rem; color: #ffe14a; }
+.gd-editor h2, .gd-editor h3 { color: #ffe14a; }
+.gd-editor p, .gd-editor li { text-shadow: 0 1px 0 rgba(30, 10, 0, .55); }
+
+/* Paneles marrones con borde biselado */
+.gd-editor .bg-card {
+  background: linear-gradient(180deg, #c27a34 0%, #a85f22 100%);
+  border: 4px solid #4d2608;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 2px #dca15f, inset 0 -6px 0 rgba(60, 25, 0, .22), 0 4px 0 #2a1304;
+}
+/* La barra de pestañas */
+.gd-editor [role="tablist"] { background: #5e300c; border-color: #2a1304; box-shadow: inset 0 0 0 2px #8a4d1a, 0 4px 0 #2a1304; }
+.gd-editor [role="tab"] { border: 2px solid transparent; border-radius: 10px; color: #f8dfb8; }
+.gd-editor [role="tab"][aria-selected="true"] {
+  background: linear-gradient(180deg, #b8ff4a, #62d61a); color: #1d3a00; border-color: #2d6a00;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .45);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .5), 0 2px 0 #1c4a00;
+}
+.gd-editor [role="tab"][aria-selected="false"]:hover { background: rgba(255, 255, 255, .12); }
+
+/* Campos oscuros */
+.gd-editor .input, .gd-editor input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), .gd-editor textarea, .gd-editor select {
+  background: #3d1d07; color: #fff; border: 3px solid #1f0e03; border-radius: 8px;
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, .35); text-shadow: none; font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+.gd-editor .input::placeholder, .gd-editor input::placeholder, .gd-editor textarea::placeholder { color: #c9a27a; }
+.gd-editor .input:focus, .gd-editor input:focus, .gd-editor textarea:focus, .gd-editor select:focus { border-color: #9dff3a; outline: none; }
+.gd-editor input[type="range"] { accent-color: #ffd23a; }
+.gd-editor input[type="checkbox"], .gd-editor input[type="radio"] { accent-color: #39c71b; }
+
+/* Botones: verde (OK) y azul/oscuro para los secundarios */
+.gd-editor button, .gd-editor .btn { color: #fff; }
+.gd-editor .btn, .gd-editor button[class*="border"], .gd-editor button[class*="outline"] {
+  background: linear-gradient(180deg, #7a4a24, #55300f); border: 3px solid #25110a; border-radius: 10px;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .22), 0 3px 0 #1c0d05;
+}
+.gd-editor button[class*="bg-primary"], .gd-editor .btn.bg-primary {
+  background: linear-gradient(180deg, #8dff4d, #2fb800); border: 3px solid #14530a; border-radius: 10px;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .55), 0 3px 0 #0e3a06;
+}
+.gd-editor button:hover:not(:disabled), .gd-editor .btn:hover { filter: brightness(1.12); }
+.gd-editor button:active:not(:disabled) { transform: translateY(2px); }
+.gd-editor button:disabled { opacity: .55; }
+.gd-editor [role="tab"] { box-shadow: none; }
+.gd-editor [role="tab"][aria-selected="false"] { background: transparent; box-shadow: none; border-color: transparent; }
+
+/* Texto auxiliar y chips legibles sobre marrón */
+.gd-editor .text-muted-foreground { color: #f8dfb8; }
+.gd-editor .text-primary { color: #b8ff4a; }
+.gd-editor a { color: #b8ff4a; }
+.gd-editor a.btn, .gd-editor a[class*="border"] { color: #fff; }
+
+/* ---- Archivos originales de GD subidos desde Shell → Branding → «Estilo del editor GD» ---- */
+.gd-editor.gd-font h1, .gd-editor.gd-font h2, .gd-editor.gd-font h3, .gd-editor.gd-font button, .gd-editor.gd-font .btn,
+.gd-editor.gd-font label > span, .gd-editor.gd-font [role="tab"] { font-family: "GDCustom", "Lilita One", sans-serif; }
+/* Marco de panel de 9 trozos (como los cuadros marrones del juego) */
+.gd-editor.gd-panel .bg-card:not([role="tablist"]) {
+  background: none; border: 16px solid transparent; border-radius: 0; box-shadow: none;
+  border-image: var(--gd-panel) var(--gd-panel-slice) fill / 16px stretch;
+}
+/* Botones verdes con la imagen original */
+.gd-editor.gd-btn button[class*="bg-primary"], .gd-editor.gd-btn .btn.bg-primary {
+  background: none; border: 12px solid transparent; border-radius: 0; box-shadow: none;
+  border-image: var(--gd-button) var(--gd-button-slice) fill / 12px stretch;
+}

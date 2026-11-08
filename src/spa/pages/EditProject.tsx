@@ -197,7 +197,7 @@ function BasicSection({ f, up }: any) {
         <Field label="Deadline"><input type="date" className="input" value={f.deadline ?? ""} onChange={(e) => up("deadline", e.target.value)} /></Field>
         <Field label="Visibilidad">
           <select className="input" value={f.visibility ?? "team"} onChange={(e) => up("visibility", e.target.value)}>
-            <option value="team">Equipo</option><option value="private">Privado</option><option value="public">Público</option>
+            <option value="team">Equipo</option><option value="private">Privado</option><option value="public">Público (cualquiera con el enlace)</option>
           </select>
         </Field>
       </div>

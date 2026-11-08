@@ -12,6 +12,7 @@ import { PROJECT_STATUSES, PROJECT_TYPES } from "@/lib/nlab-constants";
 import { Button } from "@/components/ui/button";
 import { DependenciesSection } from "@/spa/pages/EditProject";
 import { GithubField, parseList } from "@/spa/components/GithubField";
+import { useSiteSettings, type GdTheme } from "@/lib/site-branding";
 import { SectionIcon } from "@/spa/components/SectionIcon";
 import { GdLevelPreview } from "@/spa/components/GdLevelPreview";
 
@@ -49,7 +50,20 @@ const EMPTY = {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return (<label className="block text-sm"><span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>{children}</label>); }
 
+/** Variables CSS y @font-face con los archivos originales subidos desde Shell (si los hay). */
+function useGdTheme() {
+  const site = useSiteSettings();
+  const t = (site.data?.gd_theme ?? {}) as GdTheme;
+  const cls = [t.font_url ? "gd-font" : "", t.panel_url ? "gd-panel" : "", t.button_url ? "gd-btn" : ""].filter(Boolean).join(" ");
+  const style: Record<string, string> = {};
+  if (t.panel_url) { style["--gd-panel"] = `url("${t.panel_url}")`; style["--gd-panel-slice"] = String(t.panel_slice ?? 40); }
+  if (t.button_url) { style["--gd-button"] = `url("${t.button_url}")`; style["--gd-button-slice"] = String(t.button_slice ?? 30); }
+  const fontCss = t.font_url ? `@font-face{font-family:"GDCustom";src:url("${t.font_url}");font-display:swap}` : "";
+  return { cls, style: style as React.CSSProperties, fontCss };
+}
+
 export default function ColabStudio() {
+  const gdTheme = useGdTheme();
   const { id } = useParams();
   const nav = useNavigate();
   const [tab, setTab] = useState<Tab>("general");
@@ -246,7 +260,9 @@ export default function ColabStudio() {
   const needsSave = !id && tab !== "general" && tab !== "gd" && tab !== "tools";
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 md:px-8">
+    <div className="mx-auto max-w-5xl px-3 py-4 md:px-6">
+    <div className={"gd-editor " + gdTheme.cls} style={gdTheme.style}>
+      {gdTheme.fontCss && <style>{gdTheme.fontCss}</style>}
       <Helmet><title>{f.name || "Nuevo proyecto"} · Editor — NLabs</title></Helmet>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -278,7 +294,7 @@ export default function ColabStudio() {
           <Field label="Tipo"><select className="input" value={f.type} onChange={(e) => set("type", e.target.value)}>{PROJECT_TYPES.map((t: any) => <option key={t.value} value={t.value}>{t.label}</option>)}</select></Field>
           <Field label="Estado"><select className="input" value={f.status} onChange={(e) => set("status", e.target.value)}>{PROJECT_STATUSES.map((t: any) => <option key={t.value} value={t.value}>{t.label}</option>)}</select></Field>
           <Field label="Dificultad objetivo"><input className="input" value={f.difficulty} onChange={(e) => set("difficulty", e.target.value)} placeholder="Insane, Easy Demon, Extreme…" /></Field>
-          <Field label="Visibilidad"><select className="input" value={f.visibility} onChange={(e) => set("visibility", e.target.value)}><option value="team">Equipo (todos los miembros)</option><option value="private">Privado (host y participantes)</option><option value="public">Público (lectura general)</option></select></Field>
+          <Field label="Visibilidad"><select className="input" value={f.visibility} onChange={(e) => set("visibility", e.target.value)}><option value="team">Equipo (todos los miembros)</option><option value="private">Privado (host y participantes)</option><option value="public">Público (cualquiera con el enlace, sin login)</option></select></Field>
           <Field label="Fecha de inicio"><input type="date" className="input" value={f.start_date} onChange={(e) => set("start_date", e.target.value)} /></Field>
           <Field label="Fecha prevista de finalización"><input type="date" className="input" value={f.deadline} onChange={(e) => set("deadline", e.target.value)} /></Field>
           <div className="md:col-span-2"><Field label="Etiquetas (separadas por coma)"><input className="input" value={f.tags.join(", ")} onChange={(e) => set("tags", e.target.value.split(",").map((t) => t.trim()).filter(Boolean).slice(0, 12))} /></Field></div>
@@ -424,6 +440,7 @@ export default function ColabStudio() {
           )}
         </div>
       )}
+    </div>
     </div>
   );
 }

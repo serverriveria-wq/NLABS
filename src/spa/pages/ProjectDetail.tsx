@@ -127,6 +127,10 @@ export function ProjectDetailView({ project: p }: { project: any }) {
             <p className="mt-2 inline-flex items-center gap-1 text-sm text-muted-foreground"><Music className="h-3.5 w-3.5" /> {p.song_url ? <a href={p.song_url} target="_blank" rel="noreferrer" className="hover:text-primary">{p.song_name}</a> : p.song_name}</p>
           )}
           {p.preview_video_url && <PreviewVideoButton url={p.preview_video_url} />}
+          {p.visibility === "public" && !p.is_draft && (
+            <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/public/${p.slug ?? p.id}`); toast.success("Enlace público copiado"); }}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium hover:bg-accent">🌐 Copiar enlace público</button>
+          )}
           {((p.github_enabled && p.github_url) || (Array.isArray(p.tools) && p.tools.length > 0)) && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {p.github_enabled && <GithubLink url={p.github_url} />}

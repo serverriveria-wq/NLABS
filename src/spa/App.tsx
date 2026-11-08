@@ -30,6 +30,7 @@ import DocsPage from "@/spa/pages/Docs";
 import MailPage from "@/spa/pages/Mail";
 import NotifyPage from "@/spa/pages/Notify";
 import PasswordRecovery from "@/spa/pages/PasswordRecovery";
+import PublicProjectPage from "@/spa/pages/PublicProject";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } },
@@ -48,6 +49,7 @@ export default function App() {
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/auth/recovery" element={<PasswordRecovery />} />
               <Route path="/oauth/consent" element={<OAuthConsent />} />
+              <Route path="/public/:ref" element={<PublicProjectPage />} />
 
               {/* Protected app (con AppShell) */}
               <Route element={<ProtectedLayout />}>

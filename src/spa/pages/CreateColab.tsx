@@ -42,42 +42,54 @@ export default function CreateColab() {
       <Helmet><title>Crear — NLab</title></Helmet>
       <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Crear</h1>
       <p className="mt-1 text-sm text-muted-foreground">¿Qué quieres hacer?</p>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <Link to="/studio"
-          className="group rounded-2xl border-2 border-primary bg-card p-6 text-left shadow-soft transition hover:shadow-elevated sm:col-span-2">
-          <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary text-primary-foreground"><Sparkles className="h-6 w-6" /></div>
-          <h2 className="mt-4 text-lg font-semibold">Crear Collab / Level · editor avanzado</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Partes con línea de tiempo y arrastrar y soltar, equipo y solicitudes, configuración de Geometry Dash (BPM, IDs, paleta), recursos, vista previa y publicación con avisos al team.</p>
-          <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">Abrir el editor <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
-        </Link>
-        <Link to="/studio/arte" className="group rounded-2xl border bg-card p-6 text-left shadow-soft transition hover:shadow-elevated">
-          <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary-soft text-primary"><ImageIcon className="h-6 w-6" /></div>
-          <h2 className="mt-4 text-lg font-semibold">Arte</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Galería con visor ampliado, categorías, etiquetas, créditos, visibilidad y proyecto relacionado.</p>
-          <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">Abrir galería <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
-        </Link>
-        <Link to="/studio/musica" className="group rounded-2xl border bg-card p-6 text-left shadow-soft transition hover:shadow-elevated">
-          <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary-soft text-primary"><Music className="h-6 w-6" /></div>
-          <h2 className="mt-4 text-lg font-semibold">Música</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Biblioteca con reproductor, BPM, género, licencia, créditos, portada y enlaces externos.</p>
-          <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">Abrir biblioteca <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
-        </Link>
-        <button onClick={() => setMode("new")}
-          className="group rounded-2xl border bg-card p-6 text-left shadow-soft transition hover:border-primary hover:shadow-elevated">
-          <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary text-primary-foreground"><Plus className="h-6 w-6" /></div>
-          <h2 className="mt-4 text-lg font-semibold">Crear proyecto rápido</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Formulario clásico con nombre con degradado, participantes y modalidades.</p>
-          <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">Comenzar <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
-        </button>
-        <button onClick={() => setMode("edit")}
-          className="group rounded-2xl border bg-card p-6 text-left shadow-soft transition hover:border-primary hover:shadow-elevated">
-          <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary-soft text-primary"><Pencil className="h-6 w-6" /></div>
-          <h2 className="mt-4 text-lg font-semibold">Editar proyecto</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Elige uno de tus proyectos y edítalo: info, galería, progreso, participantes y más.</p>
-          <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">Elegir <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>
-        </button>
-      </div>
+      <CreateCards onQuick={() => setMode("new")} onEdit={() => setMode("edit")} />
     </div>
+  );
+}
+
+type CardCfg = { title?: string; description?: string; cta?: string; icon_url?: string };
+const CREATE_CARDS: { key: string; title: string; description: string; cta: string; icon: React.ComponentType<{ className?: string }>; to?: string; wide?: boolean; solid?: boolean }[] = [
+  { key: "editor", title: "Crear Collab / Level · editor avanzado", description: "Partes con línea de tiempo y arrastrar y soltar, equipo y solicitudes, configuración de Geometry Dash (BPM, IDs, paleta), recursos, vista previa y publicación con avisos al team.", cta: "Abrir el editor", icon: Sparkles, to: "/studio", wide: true, solid: true },
+  { key: "art", title: "Arte", description: "Galería con visor ampliado, categorías, etiquetas, créditos, visibilidad y proyecto relacionado.", cta: "Abrir galería", icon: ImageIcon, to: "/studio/arte" },
+  { key: "music", title: "Música", description: "Biblioteca con reproductor, BPM, género, licencia, créditos, portada y enlaces externos.", cta: "Abrir biblioteca", icon: Music, to: "/studio/musica" },
+  { key: "quick", title: "Crear proyecto rápido", description: "Formulario clásico con nombre con degradado, participantes y modalidades.", cta: "Comenzar", icon: Plus, solid: true },
+  { key: "edit", title: "Editar proyecto", description: "Elige uno de tus proyectos y edítalo: info, galería, progreso, participantes y más.", cta: "Elegir", icon: Pencil },
+];
+
+/** Tarjetas de «Crear»: título, texto e icono editables desde Shell → Branding → Botones de Crear. */
+function CreateCards({ onQuick, onEdit }: { onQuick: () => void; onEdit: () => void }) {
+  const site = useSiteSettings();
+  const cfg = ((site.data as { create_buttons?: Record<string, CardCfg> } | undefined)?.create_buttons ?? {}) as Record<string, CardCfg>;
+  return (
+    <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      {CREATE_CARDS.map((c) => {
+        const o = cfg[c.key] ?? {};
+        const inner = <CreateCardBody c={c} o={o} loading={site.isLoading} />;
+        const cls = "group rounded-2xl border bg-card p-6 text-left shadow-soft transition hover:shadow-elevated " + (c.wide ? "sm:col-span-2 border-2 border-primary" : "hover:border-primary");
+        if (c.to) return <Link key={c.key} to={c.to} className={cls}>{inner}</Link>;
+        return <button key={c.key} onClick={c.key === "quick" ? onQuick : onEdit} className={cls}>{inner}</button>;
+      })}
+    </div>
+  );
+}
+
+function CreateCardBody({ c, o, loading }: { c: (typeof CREATE_CARDS)[number]; o: CardCfg; loading: boolean }) {
+  const [imgReady, setImgReady] = useState(false);
+  const Icon = c.icon;
+  const box = "grid h-12 w-12 place-items-center overflow-hidden rounded-xl " + (c.solid ? "bg-primary text-primary-foreground" : "bg-primary-soft text-primary");
+  return (
+    <>
+      {/* En blanco (con brillo) hasta que carguen los ajustes y la imagen del icono */}
+      {loading ? <div className="h-12 w-12 animate-pulse rounded-xl bg-muted" />
+        : o.icon_url ? (
+          <div className={"h-12 w-12 overflow-hidden rounded-xl " + (imgReady ? "" : "animate-pulse bg-muted")}>
+            <img src={o.icon_url} alt="" onLoad={() => setImgReady(true)} onError={() => setImgReady(true)} className={"h-full w-full object-contain transition-opacity duration-300 " + (imgReady ? "opacity-100" : "opacity-0")} />
+          </div>
+        ) : <div className={box}><Icon className="h-6 w-6" /></div>}
+      {loading ? <div className="mt-4 h-5 w-2/3 animate-pulse rounded bg-muted" /> : <h2 className="mt-4 text-lg font-semibold">{o.title || c.title}</h2>}
+      {loading ? <div className="mt-2 h-10 w-full animate-pulse rounded bg-muted" /> : <p className="mt-1 text-sm text-muted-foreground">{o.description || c.description}</p>}
+      {!loading && <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">{o.cta || c.cta} <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>}
+    </>
   );
 }
 

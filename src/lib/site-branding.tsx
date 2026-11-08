@@ -12,21 +12,32 @@ export type SiteSettings = {
   gd_preview_bg_url?: string | null;
   github_icon_url?: string | null;
   section_icons?: Record<string, string> | null;
+  create_buttons?: Record<string, { title?: string; description?: string; cta?: string; icon_url?: string }> | null;
+  gd_theme?: GdTheme | null;
 };
+
+/** Archivos propios para el estilo del editor GD (fuente y marcos del juego). */
+export type GdTheme = { font_url?: string; panel_url?: string; panel_slice?: number; button_url?: string; button_slice?: number };
 
 export function useSiteSettings() {
   return useQuery({
     queryKey: ["site-settings"],
     queryFn: async (): Promise<SiteSettings> => {
-      const empty: SiteSettings = { logo_url: null, favicon_url: null, preview_button_image_url: null, site_name: null, gd_preview_bg_url: null, github_icon_url: null, section_icons: {} };
-      const t = () => supabase.from("site_settings" as never);
-      // Si la migración v2 aún no se ejecutó, las columnas nuevas no existen: caemos al select antiguo.
-      const full = await t().select("logo_url, favicon_url, preview_button_image_url, site_name, gd_preview_bg_url, github_icon_url, section_icons").eq("id", true).maybeSingle();
-      if (!full.error) return { ...empty, ...((full.data as unknown as Partial<SiteSettings> | null) ?? {}) };
-      const mid = await t().select("logo_url, favicon_url, preview_button_image_url, site_name, gd_preview_bg_url, github_icon_url").eq("id", true).maybeSingle();
-      if (!mid.error) return { ...empty, ...((mid.data as unknown as Partial<SiteSettings> | null) ?? {}) };
-      const base = await t().select("logo_url, favicon_url, preview_button_image_url, site_name").eq("id", true).maybeSingle();
-      return { ...empty, ...((base.data as unknown as Partial<SiteSettings> | null) ?? {}) };
+      const empty: SiteSettings = { logo_url: null, favicon_url: null, preview_button_image_url: null, site_name: null, gd_preview_bg_url: null, github_icon_url: null, section_icons: {}, create_buttons: {}, gd_theme: {} };
+      const base = "logo_url, favicon_url, preview_button_image_url, site_name";
+      // Del select más completo al más simple: si una migración aún no se ejecutó, se prueba con menos columnas.
+      const tries = [
+        `${base}, gd_preview_bg_url, github_icon_url, section_icons, create_buttons, gd_theme`,
+        `${base}, gd_preview_bg_url, github_icon_url, section_icons, create_buttons`,
+        `${base}, gd_preview_bg_url, github_icon_url, section_icons`,
+        `${base}, gd_preview_bg_url, github_icon_url`,
+        base,
+      ];
+      for (const cols of tries) {
+        const r = await supabase.from("site_settings" as never).select(cols).eq("id", true).maybeSingle();
+        if (!r.error) return { ...empty, ...((r.data as unknown as Partial<SiteSettings> | null) ?? {}) };
+      }
+      return empty;
     },
     staleTime: 60_000,
   });
