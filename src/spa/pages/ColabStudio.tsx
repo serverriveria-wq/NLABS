@@ -50,20 +50,15 @@ const EMPTY = {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return (<label className="block text-sm"><span className="mb-1 block text-xs font-medium text-muted-foreground">{label}</span>{children}</label>); }
 
-/** Variables CSS y @font-face con los archivos originales subidos desde Shell (si los hay). */
-function useGdTheme() {
+/** Fuente propia (.ttf) subida desde Shell → Branding → Fuente del editor. */
+function useEditorFont() {
   const site = useSiteSettings();
-  const t = (site.data?.gd_theme ?? {}) as GdTheme;
-  const cls = [t.font_url ? "gd-font" : "", t.panel_url ? "gd-panel" : "", t.button_url ? "gd-btn" : ""].filter(Boolean).join(" ");
-  const style: Record<string, string> = {};
-  if (t.panel_url) { style["--gd-panel"] = `url("${t.panel_url}")`; style["--gd-panel-slice"] = String(t.panel_slice ?? 40); }
-  if (t.button_url) { style["--gd-button"] = `url("${t.button_url}")`; style["--gd-button-slice"] = String(t.button_slice ?? 30); }
-  const fontCss = t.font_url ? `@font-face{font-family:"GDCustom";src:url("${t.font_url}");font-display:swap}` : "";
-  return { cls, style: style as React.CSSProperties, fontCss };
+  const url = (site.data?.gd_theme as GdTheme | null | undefined)?.font_url;
+  return { cls: url ? "nlab-font" : "", fontCss: url ? `@font-face{font-family:"NLabCustom";src:url("${url}");font-display:swap}` : "" };
 }
 
 export default function ColabStudio() {
-  const gdTheme = useGdTheme();
+  const gdTheme = useEditorFont();
   const { id } = useParams();
   const nav = useNavigate();
   const [tab, setTab] = useState<Tab>("general");
@@ -260,8 +255,8 @@ export default function ColabStudio() {
   const needsSave = !id && tab !== "general" && tab !== "gd" && tab !== "tools";
 
   return (
-    <div className="mx-auto max-w-5xl px-3 py-4 md:px-6">
-    <div className={"gd-editor " + gdTheme.cls} style={gdTheme.style}>
+    <div className="mx-auto max-w-5xl px-4 py-6 md:px-8">
+    <div className={"nlab-editor " + gdTheme.cls}>
       {gdTheme.fontCss && <style>{gdTheme.fontCss}</style>}
       <Helmet><title>{f.name || "Nuevo proyecto"} · Editor — NLabs</title></Helmet>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PROJECT_STATUSES, PROJECT_TYPES } from "@/lib/nlab-constants";
@@ -47,7 +47,20 @@ export default function CreateColab() {
   );
 }
 
-type CardCfg = { title?: string; description?: string; cta?: string; icon_url?: string };
+type CardCfg = { title?: string; description?: string; cta?: string; icon_url?: string; bg_url?: string; bg_color?: string; text_color?: string };
+
+/** true cuando la imagen ya cargó (o no hay imagen / falló), para mostrar la tarjeta en blanco mientras tanto. */
+function useImageReady(url?: string): boolean {
+  const [ready, setReady] = useState(!url);
+  useEffect(() => {
+    if (!url) { setReady(true); return; }
+    setReady(false);
+    const img = new Image();
+    img.onload = img.onerror = () => setReady(true);
+    img.src = url;
+  }, [url]);
+  return ready;
+}
 const CREATE_CARDS: { key: string; title: string; description: string; cta: string; icon: React.ComponentType<{ className?: string }>; to?: string; wide?: boolean; solid?: boolean }[] = [
   { key: "editor", title: "Crear Collab / Level · editor avanzado", description: "Partes con línea de tiempo y arrastrar y soltar, equipo y solicitudes, configuración de Geometry Dash (BPM, IDs, paleta), recursos, vista previa y publicación con avisos al team.", cta: "Abrir el editor", icon: Sparkles, to: "/studio", wide: true, solid: true },
   { key: "art", title: "Arte", description: "Galería con visor ampliado, categorías, etiquetas, créditos, visibilidad y proyecto relacionado.", cta: "Abrir galería", icon: ImageIcon, to: "/studio/arte" },
@@ -64,16 +77,29 @@ function CreateCards({ onQuick, onEdit }: { onQuick: () => void; onEdit: () => v
     <div className="mt-6 grid gap-4 sm:grid-cols-2">
       {CREATE_CARDS.map((c) => {
         const o = cfg[c.key] ?? {};
-        const inner = <CreateCardBody c={c} o={o} loading={site.isLoading} />;
-        const cls = "group rounded-2xl border bg-card p-6 text-left shadow-soft transition hover:shadow-elevated " + (c.wide ? "sm:col-span-2 border-2 border-primary" : "hover:border-primary");
-        if (c.to) return <Link key={c.key} to={c.to} className={cls}>{inner}</Link>;
-        return <button key={c.key} onClick={c.key === "quick" ? onQuick : onEdit} className={cls}>{inner}</button>;
+        return <CreateCardItem key={c.key} c={c} o={o} loading={site.isLoading} onClick={c.key === "quick" ? onQuick : c.key === "edit" ? onEdit : undefined} />;
       })}
     </div>
   );
 }
 
-function CreateCardBody({ c, o, loading }: { c: (typeof CREATE_CARDS)[number]; o: CardCfg; loading: boolean }) {
+function CreateCardItem({ c, o, loading, onClick }: { c: (typeof CREATE_CARDS)[number]; o: CardCfg; loading: boolean; onClick?: () => void }) {
+  const bgReady = useImageReady(loading ? undefined : o.bg_url);
+  const custom = !!(o.bg_url || o.bg_color || o.text_color);
+  const waiting = loading || !bgReady;
+  const style: React.CSSProperties = {};
+  if (!waiting) {
+    if (o.bg_color) style.backgroundColor = o.bg_color;
+    if (o.bg_url) { style.backgroundImage = `linear-gradient(rgba(0,0,0,.40), rgba(0,0,0,.40)), url("${o.bg_url}")`; style.backgroundSize = "cover"; style.backgroundPosition = "center"; }
+    if (o.text_color) style.color = o.text_color; else if (o.bg_url) style.color = "#ffffff";
+  }
+  const cls = "group rounded-2xl border p-6 text-left shadow-soft transition hover:shadow-elevated " + (c.wide ? "sm:col-span-2 border-2 border-primary " : "hover:border-primary ") + (waiting ? "bg-muted/40 " : "bg-card ");
+  const inner = <CreateCardBody c={c} o={o} loading={waiting} custom={custom} />;
+  if (c.to) return <Link to={c.to} className={cls} style={style}>{inner}</Link>;
+  return <button onClick={onClick} className={cls} style={style}>{inner}</button>;
+}
+
+function CreateCardBody({ c, o, loading, custom }: { c: (typeof CREATE_CARDS)[number]; o: CardCfg; loading: boolean; custom: boolean }) {
   const [imgReady, setImgReady] = useState(false);
   const Icon = c.icon;
   const box = "grid h-12 w-12 place-items-center overflow-hidden rounded-xl " + (c.solid ? "bg-primary text-primary-foreground" : "bg-primary-soft text-primary");
@@ -87,8 +113,8 @@ function CreateCardBody({ c, o, loading }: { c: (typeof CREATE_CARDS)[number]; o
           </div>
         ) : <div className={box}><Icon className="h-6 w-6" /></div>}
       {loading ? <div className="mt-4 h-5 w-2/3 animate-pulse rounded bg-muted" /> : <h2 className="mt-4 text-lg font-semibold">{o.title || c.title}</h2>}
-      {loading ? <div className="mt-2 h-10 w-full animate-pulse rounded bg-muted" /> : <p className="mt-1 text-sm text-muted-foreground">{o.description || c.description}</p>}
-      {!loading && <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">{o.cta || c.cta} <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>}
+      {loading ? <div className="mt-2 h-10 w-full animate-pulse rounded bg-muted" /> : <p className={"mt-1 text-sm " + (custom ? "opacity-85" : "text-muted-foreground")}>{o.description || c.description}</p>}
+      {!loading && <span className={"mt-4 inline-flex items-center gap-1 text-sm font-medium " + (custom ? "" : "text-primary")}>{o.cta || c.cta} <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" /></span>}
     </>
   );
 }

@@ -92,7 +92,7 @@ export function BrandingExtras() {
       </div>
       <div className="rounded-2xl border bg-card p-5 md:col-span-3">
         <h2 className="mb-1 font-semibold">Botones de «Crear»</h2>
-        <p className="mb-4 text-sm text-muted-foreground">Cambia el título, el texto, el botón y el icono de cada tarjeta de la pestaña Crear. Si dejas un campo vacío se usa el texto por defecto. Mientras la imagen carga, el icono se ve en blanco.</p>
+        <p className="mb-4 text-sm text-muted-foreground">Cambia el título, el texto, el botón, el icono y el fondo (imagen o color) de cada tarjeta de la pestaña Crear. Si dejas un campo vacío se usa el texto por defecto. Mientras la imagen carga, el icono se ve en blanco.</p>
         <div className="grid gap-4 lg:grid-cols-2">
           {CREATE_CARD_DEFAULTS.map((c) => (
             <div key={c.key} className="space-y-2 rounded-xl border p-3">
@@ -100,7 +100,20 @@ export function BrandingExtras() {
               <input className="input" placeholder={c.title} value={val(c.key, "title")} onChange={(e) => setField(c.key, "title", e.target.value)} />
               <textarea className="input" rows={2} placeholder={c.description} value={val(c.key, "description")} onChange={(e) => setField(c.key, "description", e.target.value)} />
               <input className="input" placeholder={c.cta} value={val(c.key, "cta")} onChange={(e) => setField(c.key, "cta", e.target.value)} />
+              <p className="pt-1 text-xs font-medium text-muted-foreground">Icono</p>
               <MediaInput value={val(c.key, "icon_url")} onChange={(v) => setField(c.key, "icon_url", v)} bucket="branding" folder="create-icons" accept="image/*" preview="image" />
+              <p className="pt-1 text-xs font-medium text-muted-foreground">Fondo de la tarjeta (imagen)</p>
+              <MediaInput value={val(c.key, "bg_url")} onChange={(v) => setField(c.key, "bg_url", v)} bucket="branding" folder="create-bg" accept="image/*" preview="image" />
+              <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-muted-foreground">
+                <label className="flex items-center gap-2">Color de fondo
+                  <input type="color" value={val(c.key, "bg_color") || "#ffffff"} onChange={(e) => setField(c.key, "bg_color", e.target.value)} className="h-8 w-10 cursor-pointer rounded border p-0.5" />
+                  {val(c.key, "bg_color") && <button type="button" onClick={() => setField(c.key, "bg_color", "")} className="underline">quitar</button>}
+                </label>
+                <label className="flex items-center gap-2">Color del texto
+                  <input type="color" value={val(c.key, "text_color") || "#000000"} onChange={(e) => setField(c.key, "text_color", e.target.value)} className="h-8 w-10 cursor-pointer rounded border p-0.5" />
+                  {val(c.key, "text_color") && <button type="button" onClick={() => setField(c.key, "text_color", "")} className="underline">quitar</button>}
+                </label>
+              </div>
             </div>
           ))}
         </div>
@@ -110,29 +123,10 @@ export function BrandingExtras() {
         </div>
       </div>
       <div className="rounded-2xl border bg-card p-5 md:col-span-3">
-        <h2 className="mb-1 font-semibold">Estilo del editor GD (tus archivos originales)</h2>
-        <p className="mb-4 text-sm text-muted-foreground">Sube archivos del propio juego (los que tengas en tu instalación de Geometry Dash) para que el editor avanzado use la fuente y los marcos originales. Sin archivos se usa el estilo por defecto.</p>
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="rounded-xl border p-3">
-            <p className="mb-1 text-sm font-semibold">Fuente (.ttf / .otf / .woff2)</p>
-            <MediaInput value={theme.font_url ?? ""} onChange={(v) => saveTheme({ ...theme, font_url: v || undefined })} bucket="branding" folder="gd-theme" accept=".ttf,.otf,.woff,.woff2,font/*" preview="none" />
-          </div>
-          <div className="rounded-xl border p-3">
-            <p className="mb-1 text-sm font-semibold">Marco de paneles (PNG)</p>
-            <MediaInput value={theme.panel_url ?? ""} onChange={(v) => saveTheme({ ...theme, panel_url: v || undefined })} bucket="branding" folder="gd-theme" accept="image/png,image/webp" preview="image" />
-            <label className="mt-2 block text-xs text-muted-foreground">Grosor del borde en la imagen (px)
-              <input type="number" min={1} max={300} className="input mt-1" defaultValue={theme.panel_slice ?? 40} onBlur={(e) => saveTheme({ ...theme, panel_slice: Number(e.target.value) || undefined })} />
-            </label>
-          </div>
-          <div className="rounded-xl border p-3">
-            <p className="mb-1 text-sm font-semibold">Fondo de botones verdes (PNG)</p>
-            <MediaInput value={theme.button_url ?? ""} onChange={(v) => saveTheme({ ...theme, button_url: v || undefined })} bucket="branding" folder="gd-theme" accept="image/png,image/webp" preview="image" />
-            <label className="mt-2 block text-xs text-muted-foreground">Grosor del borde en la imagen (px)
-              <input type="number" min={1} max={300} className="input mt-1" defaultValue={theme.button_slice ?? 30} onBlur={(e) => saveTheme({ ...theme, button_slice: Number(e.target.value) || undefined })} />
-            </label>
-          </div>
-        </div>
-        {(theme.font_url || theme.panel_url || theme.button_url) && <button disabled={busy} onClick={() => saveTheme({})} className="btn mt-3"><Trash2 className="h-3.5 w-3.5" /> Volver al estilo por defecto</button>}
+        <h2 className="mb-1 font-semibold">Fuente del editor avanzado (.ttf)</h2>
+        <p className="mb-3 text-sm text-muted-foreground">Sube tu fuente (.ttf, .otf o .woff2) y el editor avanzado la usará en todos sus textos. Sin archivo se usa la fuente normal.</p>
+        <MediaInput value={theme.font_url ?? ""} onChange={(v) => saveTheme(v ? { font_url: v } : {})} bucket="branding" folder="fonts" accept=".ttf,.otf,.woff,.woff2,font/*" preview="none" />
+        {theme.font_url && <button disabled={busy} onClick={() => saveTheme({})} className="btn mt-2"><Trash2 className="h-3.5 w-3.5" /> Quitar fuente</button>}
       </div>
     </>
   );

@@ -12,12 +12,12 @@ export type SiteSettings = {
   gd_preview_bg_url?: string | null;
   github_icon_url?: string | null;
   section_icons?: Record<string, string> | null;
-  create_buttons?: Record<string, { title?: string; description?: string; cta?: string; icon_url?: string }> | null;
+  create_buttons?: Record<string, { title?: string; description?: string; cta?: string; icon_url?: string; bg_url?: string; bg_color?: string; text_color?: string }> | null;
   gd_theme?: GdTheme | null;
 };
 
-/** Archivos propios para el estilo del editor GD (fuente y marcos del juego). */
-export type GdTheme = { font_url?: string; panel_url?: string; panel_slice?: number; button_url?: string; button_slice?: number };
+/** Fuente propia del editor avanzado. */
+export type GdTheme = { font_url?: string };
 
 export function useSiteSettings() {
   return useQuery({
