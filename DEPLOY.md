@@ -63,3 +63,7 @@ Registra cada aplicación a mano en Authentication → OAuth Apps. **Allow Dynam
 1. Ejecuta el CONTENIDO de `supabase/migration_v6.sql` en SQL Editor (columna `gd_theme`).
 2. Redespliega `admin-actions`.
 3. Shell → Branding → «Estilo del editor GD»: sube la fuente y los marcos de tu juego.
+
+## Actualización v8
+Editor avanzado con diseño normal y bordes degradados animados (claro: azul→violeta→rojo, oscuro: violeta→azul, dorado: oro→ámbar→cobre).
+Shell → Branding → «Fuente del editor avanzado (.ttf)». Redespliega `admin-actions`. Sin SQL nuevo.

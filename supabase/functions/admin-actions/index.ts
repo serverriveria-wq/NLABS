@@ -276,22 +276,22 @@ async function handle(action: string, p: Payload, callerId: string) {
           if (!/^[a-z_]{1,20}$/.test(key) || !cfg || typeof cfg !== "object") continue;
           const o: Record<string, string> = {};
           for (const f of ["title", "description", "cta"]) if (typeof cfg[f] === "string" && (cfg[f] as string).trim()) o[f] = (cfg[f] as string).trim().slice(0, 300);
-          if (typeof cfg.icon_url === "string" && /^https:\/\//.test(cfg.icon_url) && cfg.icon_url.length < 2000) o.icon_url = cfg.icon_url;
+          for (const f of ["icon_url", "bg_url"]) {
+            const v = cfg[f];
+            if (typeof v === "string" && /^https:\/\//.test(v) && v.length < 2000) o[f] = v;
+          }
+          for (const f of ["bg_color", "text_color"]) {
+            const v = cfg[f];
+            if (typeof v === "string" && /^#[0-9a-fA-F]{6}$/.test(v)) o[f] = v;
+          }
           if (Object.keys(o).length) clean[key] = o;
         }
         patch.create_buttons = clean;
       }
       if (p.gd_theme !== undefined) {
         const src = (p.gd_theme && typeof p.gd_theme === "object" ? p.gd_theme : {}) as Record<string, unknown>;
-        const t: Record<string, string | number> = {};
-        for (const f of ["font_url", "panel_url", "button_url"]) {
-          const v = src[f];
-          if (typeof v === "string" && /^https:\/\//.test(v) && v.length < 2000) t[f] = v;
-        }
-        for (const f of ["panel_slice", "button_slice"]) {
-          const n = Number(src[f]);
-          if (Number.isFinite(n) && n >= 1 && n <= 300) t[f] = Math.round(n);
-        }
+        const t: Record<string, string> = {};
+        if (typeof src.font_url === "string" && /^https:\/\//.test(src.font_url) && src.font_url.length < 2000) t.font_url = src.font_url;
         patch.gd_theme = t;
       }
       const { error } = await sb
