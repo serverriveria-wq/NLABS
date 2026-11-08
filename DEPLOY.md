@@ -44,6 +44,22 @@ Registra cada aplicación a mano en Authentication → OAuth Apps. **Allow Dynam
 1. **Supabase → SQL Editor**: pega y ejecuta `supabase/migration_v2.sql` (una sola vez; es idempotente).
    Arregla `permission denied for table site_settings`, activa Noticias y crea stickers, GitHub, herramientas y «Eliminar cuenta».
 2. **Redespliega la Edge Function `admin-actions`** (cambió: stickers, nuevos ajustes y duración del código Shell de 12 h).
-   - Variables necesarias en Edge Functions → Secrets: `ADMIN_PANEL_CODE` y `ADMIN_GATE_SIGNING_KEY`.
+   - Secreto obligatorio en Edge Functions → Secrets: `ADMIN_PANEL_CODE` (el código de Shell). `ADMIN_GATE_SIGNING_KEY` es opcional: si no existe se usa la service key del proyecto.
 3. Sube el código a GitHub; Vercel despliega solo.
 4. En Shell → Branding puedes poner el fondo de la vista previa de GD y el icono de GitHub; en Shell → Stickers subes los stickers del Room.
+
+## Actualización v4
+1. **Supabase → SQL Editor**: ejecuta el contenido de `supabase/migration_v4.sql` (añade `section_icons`).
+2. Redespliega la función `admin-actions` (acepta `section_icons`).
+3. Sube a GitHub; Vercel publica también `api/gdlevel.js` (puente a GDHistory para la vista previa de niveles).
+4. Shell → Branding → «Iconos de secciones»: sube un icono para General, Geometry Dash, Partes, Participantes, etc.
+
+## Actualización v5
+1. **Supabase → SQL Editor**: ejecuta el CONTENIDO de `supabase/migration_v5.sql` (buckets de Arte/Música, página pública, botones de Crear).
+2. Redespliega `admin-actions` (acepta `create_buttons`).
+3. Sube a GitHub. Proyectos públicos: `https://TU-DOMINIO/public/<slug o id>`.
+
+## Actualización v6
+1. Ejecuta el CONTENIDO de `supabase/migration_v6.sql` en SQL Editor (columna `gd_theme`).
+2. Redespliega `admin-actions`.
+3. Shell → Branding → «Estilo del editor GD»: sube la fuente y los marcos de tu juego.
