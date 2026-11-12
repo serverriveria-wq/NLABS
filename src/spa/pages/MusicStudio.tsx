@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GithubField, GithubLink, parseList } from "@/spa/components/GithubField";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -21,11 +21,16 @@ export default function MusicStudio() {
   const [search, setSearch] = useState("");
   const [genre, setGenre] = useState("");
   const [mine, setMine] = useState(false);
-  const [edit, setEdit] = useState<Track | "new" | null>(null);
   const [playing, setPlaying] = useState<Track | null>(null);
 
   const me = useQuery({ queryKey: ["me-id"], queryFn: async () => (await supabase.auth.getUser()).data.user?.id ?? null });
   const tracks = useQuery({ queryKey: ["music"], queryFn: async (): Promise<Track[]> => { const { data, error } = await db.from("music_tracks").select("*").order("created_at", { ascending: false }); if (error) throw error; return data; } });
+  const nav = useNavigate();
+  const { id: routeId } = useParams();
+  const loc = useLocation();
+  const isNewRoute = loc.pathname.endsWith("/nuevo");
+  const edit: Track | "new" | null = isNewRoute ? "new" : routeId ? (tracks.data?.find((x) => x.id === routeId) ?? null) : null;
+  const setEdit = (v: Track | "new" | null) => nav(v === "new" ? "/studio/musica/nuevo" : v ? `/studio/musica/${v.id}/editar` : "/studio/musica");
   const people = useQuery({ queryKey: ["people-map"], queryFn: async () => { const { data } = await supabase.from("profiles").select("id, username, display_name"); return Object.fromEntries((data ?? []).map((p) => [p.id, p.display_name || p.username])); } });
   const projects = useQuery({ queryKey: ["projects-min"], queryFn: async () => { const { data } = await supabase.from("projects").select("id, name").order("name"); return data ?? []; } });
   const isAdmin = useQuery({ queryKey: ["is-admin"], queryFn: async () => { const { data } = await supabase.from("user_roles").select("role"); return (data ?? []).some((r) => ["founder", "owner", "administrator"].includes(r.role)); } });
@@ -48,6 +53,12 @@ export default function MusicStudio() {
     const rm = [a, c].filter(Boolean) as string[]; if (rm.length) await supabase.storage.from("music").remove(rm);
     if (playing?.id === t.id) setPlaying(null);
     toast.success("Pista eliminada"); qc.invalidateQueries({ queryKey: ["music"] });
+  }
+
+  if (isNewRoute || routeId) {
+    if (routeId && tracks.isLoading) return <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+    if (routeId && !edit) return <div className="mx-auto max-w-3xl px-4 py-10 text-center text-sm text-muted-foreground">No se encontró esta pista. <Link to="/studio/musica" className="text-primary hover:underline">Volver a la biblioteca</Link></div>;
+    return <MusicForm item={edit === "new" ? null : (edit as Track)} projects={projects.data ?? []} onClose={() => setEdit(null)} onSaved={() => { tracks.refetch(); setEdit(null); }} />;
   }
 
   return (
@@ -86,7 +97,6 @@ export default function MusicStudio() {
           </ul>
         )}
       {playing && <Player track={playing} onClose={() => setPlaying(null)} />}
-      {edit && <MusicForm item={edit === "new" ? null : edit} projects={projects.data ?? []} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); qc.invalidateQueries({ queryKey: ["music"] }); }} />}
     </div>
   );
 }
@@ -153,7 +163,11 @@ function MusicForm({ item, projects, onClose, onSaved }: { item: Track | null; p
     } catch (err) { toast.error((err as Error).message); } finally { setBusy(false); }
   }
   return (
-    <Modal onClose={onClose} title={item ? "Editar pista" : "Subir música"}>
+    <div className="mx-auto max-w-3xl px-4 py-6 md:px-8">
+      <Helmet><title>{item ? "Editar pista" : "Subir música"} — NLabs</title></Helmet>
+      <button type="button" onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">← Volver a la biblioteca</button>
+      <div className="nlab-editor mt-2"><div className="bg-card rounded-2xl p-5 md:p-6">
+      <h1 className="mb-4 text-xl font-bold tracking-tight">{item ? "Editar pista" : "Subir música"}</h1>
       <form onSubmit={submit} className="space-y-3">
         <L t="Título *"><input className="input" maxLength={100} value={f.title} onChange={(e) => set("title", e.target.value)} /></L>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -181,6 +195,7 @@ function MusicForm({ item, projects, onClose, onSaved }: { item: Track | null; p
         <GithubField enabled={x.gh} url={x.ghUrl} onChange={(v) => setX((p) => ({ ...p, gh: v.enabled, ghUrl: v.url }))} />
         <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={onClose}>Cancelar</Button><Button disabled={busy} className="gap-1.5">{busy && <Loader2 className="h-4 w-4 animate-spin" />}{item ? "Guardar cambios" : "Publicar"}</Button></div>
       </form>
-    </Modal>
+      </div></div>
+    </div>
   );
 }

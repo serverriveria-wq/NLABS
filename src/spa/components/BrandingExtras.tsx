@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Github, Trash2 } from "lucide-react";
 import { useSiteSettings } from "@/lib/site-branding";
+import { supabase } from "@/integrations/supabase/client";
 import { callAdmin } from "@/spa/lib/adminApi";
 import { MediaInput } from "@/spa/components/MediaInput";
 import { SECTION_ICON_KEYS } from "@/spa/components/SectionIcon";
@@ -14,6 +15,13 @@ export function BrandingExtras() {
   const qc = useQueryClient();
   const site = useSiteSettings();
   const [busy, setBusy] = useState(false);
+
+  /** Lee de nuevo la columna para confirmar que el servidor de verdad guardó el cambio. */
+  async function readBack(col: string): Promise<{ ok: boolean; value: Record<string, Record<string, string>> | null }> {
+    const r = await supabase.from("site_settings" as never).select(col).eq("id", true).maybeSingle();
+    if (r.error) return { ok: false, value: null };
+    return { ok: true, value: ((r.data as unknown as Record<string, unknown> | null)?.[col] as Record<string, Record<string, string>> | null) ?? null };
+  }
 
   async function save(key: "gd_preview_bg_url" | "github_icon_url", value: string) {
     setBusy(true);
@@ -46,7 +54,19 @@ export function BrandingExtras() {
       for (const [k, v] of Object.entries(draft)) merged[k] = { ...(merged[k] ?? {}), ...v };
       const final = override ?? merged;
       await callAdmin("updateSiteSettings", { create_buttons: final });
+      const back = await readBack("create_buttons");
+      if (!back.ok) { toast.error("No se pudo comprobar lo guardado: falta la columna create_buttons. Ejecuta supabase/migration_v5.sql en Supabase."); return; }
+      // Comprueba que el icono, el fondo y los colores realmente quedaron guardados
+      for (const [k, cfg] of Object.entries(final)) {
+        for (const f of ["icon_url", "bg_url", "bg_color", "text_color"] as const) {
+          if (cfg[f] && back.value?.[k]?.[f] !== cfg[f]) {
+            toast.error("El servidor no guardó el icono/fondo. Pega de nuevo el index.ts nuevo en la función admin-actions de Supabase y vuelve a desplegarla. Tus cambios siguen aquí, no se perdieron.");
+            return;
+          }
+        }
+      }
       toast.success("Botones de Crear guardados");
+      qc.setQueryData(["site-settings"], (old: unknown) => ({ ...((old as object) ?? {}), create_buttons: back.value ?? {} }));
       setDraft({});
       qc.invalidateQueries({ queryKey: ["site-settings"] });
     } catch (e) { toast.error((e as Error).message + " (¿ejecutaste supabase/migration_v5.sql?)"); }

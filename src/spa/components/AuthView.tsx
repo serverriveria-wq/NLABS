@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 
 export type AuthPageConfig = {
   logo_url: string;
@@ -77,24 +76,21 @@ type Values = { identifier: string; email: string; username: string; password: s
 
 export function AuthView({
   cfg,
-  mode,
-  onModeChange,
-  values,
-  onChange,
-  onSubmit,
   loading = false,
   preview = false,
-  onRecover,
+  onGoogle,
 }: {
   cfg: AuthPageConfig;
-  mode: "signin" | "signup";
-  onModeChange: (m: "signin" | "signup") => void;
-  values: Values;
-  onChange: (patch: Partial<Values>) => void;
+  // Props antiguos (formulario de correo/contraseña): ya no se usan, se aceptan para no romper la vista previa del admin.
+  mode?: "signin" | "signup";
+  onModeChange?: (m: "signin" | "signup") => void;
+  values?: Values;
+  onChange?: (patch: Partial<Values>) => void;
   onSubmit?: (e: React.FormEvent) => void;
+  onRecover?: () => void;
   loading?: boolean;
   preview?: boolean;
-  onRecover?: () => void;
+  onGoogle?: () => void;
 }) {
   const bgStyle: React.CSSProperties = cfg.background_url
     ? { backgroundImage: `url(${cfg.background_url})`, backgroundSize: "cover", backgroundPosition: "center" }
@@ -125,57 +121,12 @@ export function AuthView({
         </div>
 
         <div className="rounded-2xl border bg-card p-6 shadow-soft">
-          <div className="mb-4 flex gap-1 rounded-lg bg-muted p-1">
-            <button type="button" onClick={() => onModeChange("signin")}
-              className={`flex-1 rounded-md py-1.5 text-sm font-medium transition ${mode === "signin" ? "bg-card shadow-soft" : "text-muted-foreground"}`}>
-              {cfg.tab_signin_label}
-            </button>
-            <button type="button" onClick={() => onModeChange("signup")}
-              className={`flex-1 rounded-md py-1.5 text-sm font-medium transition ${mode === "signup" ? "bg-card shadow-soft" : "text-muted-foreground"}`}>
-              {cfg.tab_signup_label}
-            </button>
-          </div>
-
-          {mode === "signin" ? (
-            <form onSubmit={onSubmit} className="space-y-4">
-              <Field label={cfg.identifier_label}>
-                <input type="text" autoComplete="username" required={!preview} value={values.identifier}
-                  onChange={(e) => onChange({ identifier: e.target.value })}
-                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  placeholder={cfg.identifier_placeholder} />
-              </Field>
-              <Field label={cfg.password_label}>
-                <input type="password" autoComplete="current-password" required={!preview} value={values.password}
-                  onChange={(e) => onChange({ password: e.target.value })}
-                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  placeholder={cfg.password_placeholder} />
-              </Field>
-              <SubmitBtn loading={loading} preview={preview}>{cfg.signin_button}</SubmitBtn>
-              {!preview && onRecover && <Button type="button" variant="link" className="w-full" onClick={onRecover} disabled={loading}>Recuperar contraseña</Button>}
-            </form>
-          ) : (
-            <form onSubmit={onSubmit} className="space-y-4">
-              <Field label={cfg.email_label}>
-                <input type="email" required={!preview} value={values.email}
-                  onChange={(e) => onChange({ email: e.target.value })}
-                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  placeholder={cfg.email_placeholder} />
-              </Field>
-              <Field label={cfg.username_label}>
-                <input type="text" required={!preview} value={values.username}
-                  onChange={(e) => onChange({ username: e.target.value })}
-                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  placeholder={cfg.username_placeholder} />
-              </Field>
-              <Field label={cfg.password_label}>
-                <input type="password" required={!preview} minLength={6} value={values.password}
-                  onChange={(e) => onChange({ password: e.target.value })}
-                  className="w-full rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  placeholder={cfg.password_placeholder} />
-              </Field>
-              <SubmitBtn loading={loading} preview={preview}>{cfg.signup_button}</SubmitBtn>
-            </form>
-          )}
+          <p className="mb-4 text-center text-sm text-muted-foreground">Entra con tu cuenta de Google. Si es tu primera vez, se crea tu cuenta automáticamente.</p>
+          <button type="button" onClick={onGoogle} disabled={loading || preview}
+            className="flex w-full items-center justify-center gap-3 rounded-lg border bg-white py-2.5 text-sm font-semibold text-gray-800 shadow-soft transition hover:bg-gray-50 disabled:opacity-60">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleLogo />}
+            Conectar con Google
+          </button>
 
           {cfg.notice && <p className="mt-4 text-center text-xs text-muted-foreground">{cfg.notice}</p>}
         </div>
@@ -190,20 +141,13 @@ export function AuthView({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function GoogleLogo() {
   return (
-    <div>
-      <label className="mb-1.5 block text-sm font-medium">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function SubmitBtn({ loading, preview, children }: { loading: boolean; preview: boolean; children: React.ReactNode }) {
-  return (
-    <button type="submit" disabled={loading || preview}
-      className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition hover:opacity-90 disabled:opacity-50">
-      {loading && <Loader2 className="h-4 w-4 animate-spin" />} {children}
-    </button>
+    <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+    </svg>
   );
 }

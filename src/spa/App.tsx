@@ -75,7 +75,11 @@ export default function App() {
                 <Route path="/room" element={<RoomPage />} />
                 <Route path="/studio" element={<ColabStudio />} />
                 <Route path="/studio/arte" element={<ArtStudio />} />
+                <Route path="/studio/arte/nuevo" element={<ArtStudio />} />
+                <Route path="/studio/arte/:id/editar" element={<ArtStudio />} />
                 <Route path="/studio/musica" element={<MusicStudio />} />
+                <Route path="/studio/musica/nuevo" element={<MusicStudio />} />
+                <Route path="/studio/musica/:id/editar" element={<MusicStudio />} />
                 <Route path="/projects/:id/studio" element={<ColabStudio />} />
                 <Route path="/p/:slug" element={<ProjectBySlugPage />} />
               </Route>

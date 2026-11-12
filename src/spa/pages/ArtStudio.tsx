@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { GithubField, GithubLink, parseList } from "@/spa/components/GithubField";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -21,10 +21,15 @@ export default function ArtStudio() {
   const [cat, setCat] = useState("");
   const [mine, setMine] = useState(false);
   const [view, setView] = useState<number | null>(null);
-  const [edit, setEdit] = useState<Art | "new" | null>(null);
 
   const me = useQuery({ queryKey: ["me-id"], queryFn: async () => (await supabase.auth.getUser()).data.user?.id ?? null });
   const art = useQuery({ queryKey: ["artworks"], queryFn: async (): Promise<Art[]> => { const { data, error } = await db.from("artworks").select("*").order("created_at", { ascending: false }); if (error) throw error; return data; } });
+  const nav = useNavigate();
+  const { id: routeId } = useParams();
+  const loc = useLocation();
+  const isNewRoute = loc.pathname.endsWith("/nuevo");
+  const edit: Art | "new" | null = isNewRoute ? "new" : routeId ? (art.data?.find((x) => x.id === routeId) ?? null) : null;
+  const setEdit = (v: Art | "new" | null) => nav(v === "new" ? "/studio/arte/nuevo" : v ? `/studio/arte/${v.id}/editar` : "/studio/arte");
   const people = useQuery({ queryKey: ["people-map"], queryFn: async () => { const { data } = await supabase.from("profiles").select("id, username, display_name"); return Object.fromEntries((data ?? []).map((p) => [p.id, p.display_name || p.username])); } });
   const projects = useQuery({ queryKey: ["projects-min"], queryFn: async () => { const { data } = await supabase.from("projects").select("id, name").order("name"); return data ?? []; } });
   const isAdmin = useQuery({ queryKey: ["is-admin"], queryFn: async () => { const { data } = await supabase.from("user_roles").select("role"); return (data ?? []).some((r) => ["founder", "owner", "administrator"].includes(r.role)); } });
@@ -53,6 +58,12 @@ export default function ArtStudio() {
   }
   const cur = view !== null ? list[view] : null;
   const canEdit = (a: Art) => a.author_id === me.data || isAdmin.data;
+
+  if (isNewRoute || routeId) {
+    if (routeId && art.isLoading) return <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+    if (routeId && !edit) return <div className="mx-auto max-w-3xl px-4 py-10 text-center text-sm text-muted-foreground">No se encontró este elemento. <Link to="/studio/arte" className="text-primary hover:underline">Volver a la galería</Link></div>;
+    return <ArtForm item={edit === "new" ? null : (edit as Art)} projects={projects.data ?? []} onClose={() => setEdit(null)} onSaved={() => { art.refetch(); setEdit(null); }} />;
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:px-8">
@@ -105,7 +116,6 @@ export default function ArtStudio() {
           </div>
         </Modal>
       )}
-      {edit && <ArtForm item={edit === "new" ? null : edit} projects={projects.data ?? []} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); qc.invalidateQueries({ queryKey: ["artworks"] }); }} />}
     </div>
   );
 }
@@ -141,7 +151,11 @@ function ArtForm({ item, projects, onClose, onSaved }: { item: Art | null; proje
     } catch (err) { toast.error((err as Error).message); } finally { setBusy(false); }
   }
   return (
-    <Modal onClose={onClose} title={item ? "Editar obra" : "Subir arte"}>
+    <div className="mx-auto max-w-3xl px-4 py-6 md:px-8">
+      <Helmet><title>{item ? "Editar obra" : "Subir arte"} — NLabs</title></Helmet>
+      <button type="button" onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground">← Volver a la galería</button>
+      <div className="nlab-editor mt-2"><div className="bg-card rounded-2xl p-5 md:p-6">
+      <h1 className="mb-4 text-xl font-bold tracking-tight">{item ? "Editar obra" : "Subir arte"}</h1>
       <form onSubmit={submit} className="space-y-3">
         <label className="block"><span className="mb-1 block text-xs text-muted-foreground">Imagen {item ? "(opcional: reemplazar)" : "*"}</span>
           <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(e) => pick(e.target.files?.[0])} className="input" /></label>
@@ -164,6 +178,7 @@ function ArtForm({ item, projects, onClose, onSaved }: { item: Art | null; proje
         <GithubField enabled={x.gh} url={x.ghUrl} onChange={(v) => setX((p) => ({ ...p, gh: v.enabled, ghUrl: v.url }))} />
         <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={onClose}>Cancelar</Button><Button disabled={busy} className="gap-1.5">{busy && <Loader2 className="h-4 w-4 animate-spin" />}{item ? "Guardar cambios" : "Publicar"}</Button></div>
       </form>
-    </Modal>
+      </div></div>
+    </div>
   );
 }
