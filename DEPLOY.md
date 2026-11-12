@@ -67,3 +67,18 @@ Registra cada aplicación a mano en Authentication → OAuth Apps. **Allow Dynam
 ## Actualización v8
 Editor avanzado con diseño normal y bordes degradados animados (claro: azul→violeta→rojo, oscuro: violeta→azul, dorado: oro→ámbar→cobre).
 Shell → Branding → «Fuente del editor avanzado (.ttf)». Redespliega `admin-actions`. Sin SQL nuevo.
+
+## Actualización v9
+Arte y Música: formularios como páginas propias (`/studio/arte/nuevo`, `/studio/arte/:id/editar`, `/studio/musica/nuevo`, `/studio/musica/:id/editar`) con borde degradado animado.
+«Botones de Crear» ahora comprueba que el servidor guardó icono/fondo y avisa si hay que redesplegar `admin-actions`.
+
+## v10 · Correos de confirmación
+- Si no llegan los correos: Supabase → Authentication → SMTP Settings (SMTP propio; el de Supabase solo envía a miembros del equipo y con límite muy bajo).
+- Usuarios atascados: `UPDATE auth.users SET email_confirmed_at = now() WHERE email = 'correo@ejemplo.com' AND email_confirmed_at IS NULL;`
+- La pantalla de acceso ahora avisa «correo sin confirmar» y permite reenviar el correo.
+
+## v11 · Inicio de sesión con Google
+1. Google Cloud Console → Credenciales → ID de cliente OAuth (Aplicación web). URI de redireccionamiento autorizado: `https://<TU-REF>.supabase.co/auth/v1/callback`.
+2. Supabase → Authentication → Sign In / Providers → Google: activar y pegar Client ID y Client Secret.
+3. Supabase → Authentication → URL Configuration: Site URL `https://nlabgd.vercel.app` y en Redirect URLs `https://nlabgd.vercel.app/**`.
+4. Ejecutar el CONTENIDO de `supabase/migration_v11.sql`.
